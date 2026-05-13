@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SaturnoX – Panel Negocio</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { background: linear-gradient(160deg, var(--navy) 0%, var(--navy2) 60%, var(--navy3) 100%); }
+    .layout { display:flex; min-height:calc(100vh - 60px); }
+    .sidebar {
+      width:220px; flex-shrink:0;
+      background:rgba(8,18,36,.8);
+      border-right:var(--border);
+      padding:24px 14px;
+      display:flex; flex-direction:column; gap:4px;
+      position:sticky; top:60px; height:calc(100vh - 60px);
+      overflow-y:auto;
+    }
+    .sidebar-ttl { font-size:10px;font-weight:500;letter-spacing:2px;color:var(--blue-400);text-transform:uppercase;padding:0 8px 8px;margin-top:8px; }
+    .sidebar-btn {
+      display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-sm);
+      background:transparent;border:none;font-family:var(--font-body);font-size:13px;font-weight:500;
+      color:var(--blue-200);cursor:pointer;transition:all .2s;text-align:left;width:100%;position:relative;
+    }
+    .sidebar-btn:hover { background:rgba(99,102,184,.08);color:var(--blue-50); }
+    .sidebar-btn.active { background:rgba(57,60,128,.22);color:var(--blue-50);border-left:2px solid var(--blue-400); }
+    .sidebar-icon { font-size:16px;width:20px;text-align:center; }
+    .notif-badge {
+      position:absolute;right:10px;top:50%;transform:translateY(-50%);
+      background:var(--red);color:#fff;font-size:10px;font-weight:700;
+      border-radius:10px;padding:1px 6px;min-width:16px;text-align:center;
+      animation:pulse 2s infinite;
+    }
+    .content { flex:1;padding:32px 40px;min-width:0; }
+    .page-hdr { margin-bottom:28px; }
+    .page-hdr h2 { font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--blue-50);margin-bottom:4px; }
+    .page-hdr p  { font-size:13px;color:var(--blue-200); }
+    .page-hdr-row { display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:24px; }
+    .page-hdr-row h2 { font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--blue-50);margin:0; }
+ 
+    /* SETUP CARD */
+    .setup-card {
+      max-width:700px;background:rgba(255,255,255,.03);
+      border:var(--border);border-radius:var(--r-xl);padding:32px;
+    }
+    .setup-card h3 { font-family:var(--font-display);font-size:18px;font-weight:600;color:var(--blue-50);margin-bottom:4px; }
+    .setup-card .card-sub { font-size:13px;color:var(--blue-200);margin-bottom:24px; }
+    .icon-grid { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px; }
+    .icon-opt {
+      width:42px;height:42px;border-radius:var(--r-sm);border:var(--border);background:transparent;
+      font-size:20px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;
+    }
+    .icon-opt:hover { background:var(--glass-h);border-color:rgba(99,102,184,.4); }
+    .icon-opt.selected { background:rgba(57,60,128,.25);border-color:var(--blue-400); }
+    /* Emoji picker expandible */
+    .emoji-picker-wrap { position:relative; }
+    .emoji-selected-preview {
+      display:flex;align-items:center;gap:10px;
+    }
+    .emoji-preview-badge {
+      width:52px;height:52px;border-radius:var(--r-md);border:var(--border);
+      background:rgba(255,255,255,.04);font-size:26px;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .emoji-open-btn {
+      display:flex;align-items:center;gap:6px;padding:8px 16px;
+      background:rgba(99,102,184,.1);border:var(--border);border-radius:var(--r-md);
+      font-size:13px;font-weight:500;color:var(--blue-200);cursor:pointer;
+      transition:all .2s;
+    }
+    .emoji-open-btn:hover { background:rgba(99,102,184,.18);color:var(--blue-50); }
+    .emoji-panel {
+      display:none;margin-top:12px;
+      background:rgba(8,18,36,.95);border:var(--border);border-radius:var(--r-lg);
+      padding:16px;box-shadow:0 16px 40px rgba(0,0,0,.5);
+      animation:slideDown .2s ease;
+    }
+    .emoji-panel.open { display:block; }
+    #emojiPanelContent { max-height:280px;overflow-y:auto;padding-right:4px; }
+    .emoji-panel-header {
+      display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;
+    }
+    .emoji-panel-title { font-size:12px;font-weight:600;color:var(--blue-400);text-transform:uppercase;letter-spacing:1px; }
+    .emoji-close-btn {
+      background:none;border:none;color:var(--blue-200);cursor:pointer;font-size:18px;padding:2px 6px;
+      border-radius:var(--r-sm);transition:all .2s;
+    }
+    .emoji-close-btn:hover { background:rgba(99,102,184,.15);color:var(--blue-50); }
+    .emoji-search {
+      width:100%;padding:8px 12px;background:rgba(255,255,255,.05);border:var(--border);
+      border-radius:var(--r-md);font-family:var(--font-body);font-size:13px;color:var(--blue-50);
+      outline:none;margin-bottom:12px;box-sizing:border-box;
+    }
+    .emoji-search::placeholder { color:var(--blue-200); }
+    .emoji-category-label { font-size:10px;font-weight:600;color:var(--blue-400);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px; }
+    .emoji-grid { display:flex;flex-wrap:wrap;gap:4px; }
+    .emoji-item {
+      width:38px;height:38px;border-radius:var(--r-sm);border:1px solid transparent;background:transparent;
+      font-size:20px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;
+    }
+    .emoji-item:hover { background:rgba(99,102,184,.15);border-color:rgba(99,102,184,.3); }
+    .emoji-item.selected { background:rgba(57,60,128,.3);border-color:var(--blue-400); }
+    .days-row { display:flex;gap:8px;flex-wrap:wrap; }
+    .day-toggle {
+      padding:7px 14px;border-radius:20px;border:1px solid rgba(99,102,184,.2);background:transparent;
+      font-family:var(--font-body);font-size:12px;font-weight:500;color:var(--blue-200);cursor:pointer;transition:all .2s;
+    }
+    .day-toggle.active { background:var(--blue-600);border-color:var(--blue-600);color:var(--blue-50); }
+
+    /* STATS */
+    .stats-row { display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px; }
+    .stat-card { flex:1;min-width:130px;background:var(--glass);border:var(--border);border-radius:var(--r-md);padding:16px 20px; }
+    .stat-num { font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--blue-400);display:block; }
+    .stat-lbl { font-size:11px;color:var(--blue-200);text-transform:uppercase;letter-spacing:1px; }
+
+    /* AGENDA */
+    .agenda-hdr { display:flex;align-items:center;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px; }
+    .agenda-date {
+      flex-shrink:0;padding:8px 16px;border-radius:var(--r-sm);border:var(--border);background:transparent;
+      cursor:pointer;text-align:center;transition:all .2s;font-family:var(--font-body);
+    }
+    .agenda-date:hover { border-color:rgba(99,102,184,.45); }
+    .agenda-date.active { background:var(--blue-600);border-color:var(--blue-600); }
+    .agenda-date .dow { font-size:10px;font-weight:500;color:var(--blue-200);text-transform:uppercase;letter-spacing:.5px;display:block; }
+    .agenda-date.active .dow { color:rgba(230,241,251,.6); }
+    .agenda-date .day { font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--blue-50);display:block; }
+
+    /* SLOTS TABLE */
+    .slots-table { display:flex;flex-direction:column;gap:6px; }
+    .slot-row {
+      display:flex;align-items:center;gap:12px;padding:12px 16px;
+      border-radius:var(--r-sm);background:var(--glass);border:var(--border);
+      transition:background .2s;
+    }
+    .slot-row:hover { background:var(--glass-h); }
+    .slot-row.taken { border-color:rgba(99,102,184,.3); }
+    .slot-time { font-family:var(--font-display);font-size:14px;font-weight:500;color:var(--blue-200);width:60px;flex-shrink:0; }
+    .slot-info { flex:1;font-size:13px; }
+    .slot-user { color:var(--blue-50);font-weight:500; }
+    .slot-sub  { color:var(--blue-200);font-size:11px; }
+    .slot-free { color:rgba(99,102,184,.5);font-size:12px;font-style:italic; }
+    .slot-actions { display:flex;gap:6px;align-items:center; }
+    .btn-cancel-appt {
+      font-family:var(--font-body);font-size:11px;font-weight:500;
+      padding:5px 12px;border-radius:16px;
+      border:1px solid var(--red-bd);background:var(--red-bg);color:var(--red);
+      cursor:pointer;transition:all .2s;white-space:nowrap;
+    }
+    .btn-cancel-appt:hover { background:rgba(226,75,74,.22); }
+
+    /* CLIENTS */
+    .client-list { display:flex;flex-direction:column;gap:8px; }
+    .client-row {
+      display:flex;align-items:center;gap:14px;padding:12px 16px;
+      border-radius:var(--r-md);background:var(--glass);border:var(--border);
+    }
+    .client-row:hover { background:var(--glass-h); }
+    .client-avatar {
+      width:36px;height:36px;border-radius:50%;
+      background:rgba(99,102,184,.15);border:1px solid rgba(99,102,184,.25);
+      display:flex;align-items:center;justify-content:center;
+      font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--blue-400);
+      flex-shrink:0;
+    }
+    .client-info { flex:1; }
+    .client-name { font-size:13px;font-weight:500;color:var(--blue-50);margin-bottom:2px; }
+    .client-meta { font-size:11px;color:var(--blue-200); }
+
+    /* EMPTY */
+    .empty { text-align:center;padding:40px;color:var(--blue-200);font-size:13px; }
+    .empty .em-ico { font-size:36px;margin-bottom:10px; }
+
+    /* MODAL */
+    .modal-overlay { position:fixed;inset:0;z-index:500;background:rgba(4,16,40,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px; }
+    .modal-overlay.hidden { display:none; }
+    .modal-box {
+      background:var(--navy2);border:var(--border);border-radius:var(--r-xl);
+      padding:32px;width:100%;max-width:440px;position:relative;
+    }
+    .modal-box h3 { font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--blue-50);margin-bottom:6px; }
+    .modal-box p  { font-size:13px;color:var(--blue-200);margin-bottom:20px; }
+    .modal-appt-info {
+      background:var(--red-bg);border:1px solid var(--red-bd);border-radius:var(--r-md);
+      padding:14px 16px;margin-bottom:20px;
+    }
+    .modal-appt-info .user-name { font-size:15px;font-weight:600;color:var(--blue-50);margin-bottom:4px; }
+    .modal-appt-info .appt-detail { font-size:12px;color:var(--blue-200); }
+    .modal-footer { display:flex;gap:8px;margin-top:4px; }
+
+    /* RECENT APPTS TABLE */
+    .appt-table-row {
+      display:flex;align-items:center;gap:12px;padding:12px 16px;
+      border-radius:var(--r-sm);background:var(--glass);border:var(--border);
+      margin-bottom:6px;transition:background .2s;
+    }
+    .appt-table-row:hover { background:var(--glass-h); }
+    .appt-table-time { font-family:var(--font-display);font-size:13px;font-weight:500;color:var(--blue-400);width:56px;flex-shrink:0; }
+
+    /* CANCELLED BADGE */
+    .badge.cancelled { background:rgba(226,75,74,.12);color:var(--red);border-color:var(--red-bd); }
+
+    @media (max-width:700px) {
+      .sidebar { display:none; }
+      .content { padding:20px 16px; }
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.5} }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="business.html" class="logo"><img src="saturnox.png" alt="SaturnoX" style="height:50px;width:auto;filter:brightness(1.1);vertical-align:middle;" /></a>
+  <div class="nav-right">
+    <span style="font-size:13px;color:var(--blue-200);" id="navUser"></span>
+    <button class="btn danger" onclick="logout()">Salir</button>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-ttl">Menú</div>
+    <button class="sidebar-btn active" id="sb-dashboard" onclick="showPage('dashboard')">
+      <span class="sidebar-icon">📊</span> Panel
+    </button>
+    <button class="sidebar-btn" id="sb-agenda" onclick="showPage('agenda')">
+      <span class="sidebar-icon">📅</span> Agenda
+    </button>
+    <button class="sidebar-btn" id="sb-clientes" onclick="showPage('clientes')">
+      <span class="sidebar-icon">👥</span> Clientes
+    </button>
+    <button class="sidebar-btn" id="sb-resenas" onclick="showPage('resenas')">
+      <span class="sidebar-icon">⭐</span> Reseñas
+    </button>
+    <div class="sidebar-ttl" style="margin-top:12px;">Configuración</div>
+    <button class="sidebar-btn" id="sb-negocio" onclick="showPage('negocio')">
+      <span class="sidebar-icon">🏪</span> Mi negocio
+    </button>
+  </aside>
+
+  <main class="content">
+
+    <!-- BANNER NOTIFICACIÓN AL NEGOCIO: usuario canceló turno -->
+    <div id="bizNotifBanner" style="display:none;background:linear-gradient(135deg,rgba(239,159,39,.12),rgba(239,159,39,.06));border:1px solid rgba(239,159,39,.3);border-radius:var(--r-lg);padding:14px 20px;align-items:center;gap:14px;margin-bottom:24px;animation:slideDown .3s ease;">
+      <div style="font-size:28px;flex-shrink:0;">📲</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;color:var(--amber);margin-bottom:2px;" id="bizNotifTitle"></div>
+        <div style="font-size:12px;color:rgba(239,159,39,.75);" id="bizNotifSub"></div>
+      </div>
+      <button onclick="dismissBizNotif()" style="background:rgba(239,159,39,.15);border:1px solid rgba(239,159,39,.3);border-radius:var(--r-sm);padding:6px 14px;font-size:12px;font-weight:600;color:var(--amber);cursor:pointer;white-space:nowrap;transition:background .2s;" onmouseover="this.style.background='rgba(239,159,39,.25)'" onmouseout="this.style.background='rgba(239,159,39,.15)'">Entendido</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard">
+      <div class="page-hdr">
+        <h2 id="dashTitle">Panel</h2>
+        <p id="dashSub"></p>
+      </div>
+      <div class="stats-row" id="dashStats"></div>
+      <div id="noNegocioAlert" class="hidden">
+        <div style="background:rgba(57,60,128,.12);border:1px solid rgba(99,102,184,.25);border-radius:var(--r-lg);padding:28px;max-width:560px;text-align:center;">
+          <div style="font-size:40px;margin-bottom:12px;">🏪</div>
+          <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--blue-50);margin-bottom:8px;">Todavía no configuraste tu negocio</div>
+          <p style="font-size:13px;color:var(--blue-200);margin-bottom:20px;">Completá los datos para que los usuarios puedan reservar turnos con vos.</p>
+          <button class="btn primary" onclick="showPage('negocio')">Configurar mi negocio →</button>
+        </div>
+      </div>
+      <div id="recentAppts"></div>
+    </div>
+
+    <!-- AGENDA -->
+    <div id="page-agenda" class="hidden">
+      <div class="page-hdr-row">
+        <div>
+          <h2>Agenda</h2>
+          <p style="font-size:13px;color:var(--blue-200);margin-top:2px;">Turnos por día — podés cancelar desde acá</p>
+        </div>
+      </div>
+      <div class="agenda-hdr" id="agendaHdr"></div>
+      <div class="slots-table" id="agendaSlots"></div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div id="page-clientes" class="hidden">
+      <div class="page-hdr">
+        <h2>Clientes</h2>
+        <p>Personas que reservaron turnos</p>
+      </div>
+      <div class="client-list" id="clientList"></div>
+    </div>
+
+    <!-- RESEÑAS -->
+    <div id="page-resenas" class="hidden">
+      <div class="page-hdr">
+        <h2>Reseñas</h2>
+        <p>Opiniones de tus clientes sobre tu negocio</p>
+      </div>
+      <div id="bizReviewStats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;"></div>
+      <div id="bizReviewList" style="display:flex;flex-direction:column;gap:12px;"></div>
+    </div>
+
+    <!-- NEGOCIO -->
+    <div id="page-negocio" class="hidden">
+      <div class="page-hdr">
+        <h2>Mi negocio</h2>
+        <p>Configurá los datos, horarios y días de atención</p>
+      </div>
+
+      <div class="setup-card">
+        <h3>Datos del negocio</h3>
+        <p class="card-sub">Esta información aparece en el listado público de SaturnoX</p>
+
+        <div class="form-group">
+          <label class="form-label">Ícono del negocio</label>
+          <div class="emoji-picker-wrap">
+            <div class="emoji-selected-preview">
+              <div class="emoji-preview-badge" id="emojiPreviewBadge">🏪</div>
+              <div>
+                <button type="button" class="emoji-open-btn" onclick="toggleEmojiPanel()">
+                  <span>＋ Elegir emoji</span>
+                  <span id="emojiOpenArrow" style="font-size:10px;transition:transform .2s;">▼</span>
+                </button>
+                <div style="font-size:11px;color:var(--blue-200);margin-top:4px;">Este ícono aparece en el listado público</div>
+              </div>
+            </div>
+            <div class="emoji-panel" id="emojiPanel">
+              <div class="emoji-panel-header">
+                <span class="emoji-panel-title">Elegí un emoji para tu negocio</span>
+                <button class="emoji-close-btn" onclick="toggleEmojiPanel()">✕</button>
+              </div>
+              <input class="emoji-search" id="emojiSearch" type="text" placeholder="Buscar emoji... (ej: salud, casa, flor)" oninput="filterEmojis(this.value)" />
+              <div id="emojiPanelContent"></div>
+            </div>
+          </div>
+          <input type="hidden" id="bizIcon" value="🏪" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nombre del negocio *</label>
+            <input class="form-input" type="text" id="bizName" placeholder="Ej: Peluquería Nova" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipo / rubro *</label>
+            <input class="form-input" type="text" id="bizType" placeholder="Ej: Peluquería" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Categoría *</label>
+          <select class="form-select" id="bizCat">
+            <option value="salud">Salud</option>
+            <option value="belleza">Belleza</option>
+            <option value="veterinaria">Veterinaria</option>
+            <option value="profesional">Profesional</option>
+            <option value="fitness">Fitness</option>
+            <option value="educacion">Educación</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Dirección</label>
+          <input class="form-input" type="text" id="bizAddr" placeholder="Av. San Martín 450, Pergamino" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Teléfono de contacto</label>
+          <input class="form-input" type="tel" id="bizPhone" placeholder="Ej: 2477 123456" />
+          <div style="margin-top:6px;font-size:11px;color:var(--blue-200);">Se muestra al usuario cuando va a reservar un turno: «Cualquier consulta al [número]»</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-textarea" id="bizDesc" placeholder="Describí brevemente tus servicios..."></textarea>
+        </div>
+
+        <div style="height:1px;background:rgba(99,102,184,.15);margin:24px 0;"></div>
+        <h3>Horarios de atención</h3>
+        <p class="card-sub">Los turnos se generan automáticamente en el intervalo seleccionado</p>
+
+        <!-- BLOQUE 1 -->
+        <div style="font-size:11px;color:var(--blue-400);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Bloque 1</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Apertura *</label>
+            <input class="form-input" type="time" id="bizStart" value="09:00" oninput="updateSlotPreview()" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cierre *</label>
+            <input class="form-input" type="time" id="bizEnd" value="18:00" oninput="updateSlotPreview()" />
+          </div>
+        </div>
+
+        <!-- BLOQUE 2 -->
+        <div style="margin-top:12px;">
+          <div style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;margin-bottom:10px;" onclick="toggleBlock2()">
+            <div id="block2ToggleTrack" style="position:relative;width:44px;height:24px;border-radius:12px;background:rgba(99,102,184,.15);border:1px solid rgba(99,102,184,.2);transition:all .25s;flex-shrink:0;">
+              <div id="block2ToggleThumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--blue-200);transition:all .25s;"></div>
+            </div>
+            <span style="font-size:13px;color:var(--blue-100);" id="block2ToggleLabel">Agregar segundo bloque horario</span>
+          </div>
+          <div id="block2Fields" style="display:none;animation:slideDown .2s ease;">
+            <div style="font-size:11px;color:var(--blue-400);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Bloque 2</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Apertura bloque 2</label>
+                <input class="form-input" type="time" id="bizStart2" value="14:00" oninput="updateSlotPreview()" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cierre bloque 2</label>
+                <input class="form-input" type="time" id="bizEnd2" value="18:00" oninput="updateSlotPreview()" />
+              </div>
+            </div>
+            <div style="padding:10px 14px;background:rgba(99,102,184,.06);border:1px solid rgba(99,102,184,.15);border-radius:var(--r-md);font-size:12px;color:var(--blue-200);">
+              💡 Útil si cerrás al mediodía. Ej: Bloque 1 de 08:00 a 12:00 · Bloque 2 de 14:00 a 18:00
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label">Intervalo entre turnos</label>
+          <select class="form-select" id="bizInterval" onchange="updateSlotPreview()">
+            <option value="15">15 minutos</option>
+            <option value="20">20 minutos</option>
+            <option value="30" selected>30 minutos</option>
+            <option value="45">45 minutos</option>
+            <option value="60">1 hora</option>
+            <option value="75">1 hora 15 min</option>
+            <option value="90">1 hora 30 min</option>
+            <option value="105">1 hora 45 min</option>
+            <option value="120">2 horas</option>
+            <option value="150">2 horas 30 min</option>
+            <option value="180">3 horas</option>
+            <option value="240">4 horas</option>
+            <option value="300">5 horas</option>
+            <option value="360">6 horas</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Días de atención</label>
+          <div class="days-row" id="daysRow"></div>
+        </div>
+
+        <!-- SLOT PREVIEW -->
+        <div style="margin-top:6px;padding:16px;background:rgba(99,102,184,.05);border:1px solid rgba(99,102,184,.12);border-radius:var(--r-md);">
+          <div style="font-size:11px;color:var(--blue-400);font-weight:500;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Vista previa de turnos del día</div>
+          <div style="font-size:12px;color:var(--blue-200);margin-bottom:10px;" id="previewInfo"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="slotPreview"></div>
+        </div>
+
+        <div style="height:1px;background:rgba(99,102,184,.15);margin:24px 0;"></div>
+        <h3>Reserva con seña</h3>
+        <p class="card-sub">Indicá si los turnos requieren una seña para confirmar la reserva</p>
+
+        <div class="form-group" style="display:flex;align-items:center;gap:14px;">
+          <div style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;" onclick="toggleDepositFields()">
+            <div id="depositToggleTrack" style="position:relative;width:44px;height:24px;border-radius:12px;background:rgba(99,102,184,.15);border:1px solid rgba(99,102,184,.2);transition:all .25s;flex-shrink:0;">
+              <div id="depositToggleThumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--blue-200);transition:all .25s;"></div>
+            </div>
+            <span style="font-size:13px;color:var(--blue-100);" id="depositToggleLabel">El turno no requiere seña</span>
+          </div>
+        </div>
+
+        <div id="depositFields" style="display:none;margin-top:4px;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Alias / CVU *</label>
+              <input class="form-input" type="text" id="bizDepositAlias" placeholder="Ej: juan.perez.mp o CVU" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nombre del titular *</label>
+              <input class="form-input" type="text" id="bizDepositHolder" placeholder="Ej: Juan Pérez" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Monto de la seña (ARS) *</label>
+            <input class="form-input" type="number" id="bizDepositAmount" placeholder="Ej: 3000" min="0" step="100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Enviar comprobante a (WhatsApp / teléfono) *</label>
+            <input class="form-input" type="tel" id="bizDepositPhone" placeholder="Ej: 2477 123456" />
+          </div>
+          <div style="padding:12px 16px;background:rgba(99,102,184,.06);border:1px solid rgba(99,102,184,.15);border-radius:var(--r-md);font-size:12px;color:var(--blue-200);">
+            💳 Esta información se mostrará al usuario al momento de reservar para que realice la transferencia.
+          </div>
+        </div>
+
+        <div style="height:1px;background:rgba(99,102,184,.15);margin:24px 0;"></div></div>
+
+        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+          <button class="btn primary lg" onclick="saveBiz()">Guardar cambios</button>
+          <button class="btn danger" id="btnDelete" onclick="deleteBiz()" style="display:none;">Eliminar negocio</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL ELIMINAR NEGOCIO -->
+<div class="modal-overlay hidden" id="deleteModal">
+  <div class="modal-box" style="max-width:420px;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:48px;margin-bottom:12px;">🗑️</div>
+      <h3 style="color:var(--red);margin-bottom:8px;">Eliminar negocio</h3>
+      <p style="font-size:13px;color:var(--blue-200);line-height:1.6;">Esta acción es <strong style="color:var(--blue-50);">permanente e irreversible</strong>. Se eliminarán todos los datos del negocio y todos los turnos asociados.</p>
+    </div>
+    <div style="background:rgba(226,75,74,.08);border:1px solid var(--red-bd);border-radius:var(--r-md);padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--red);">
+      ⚠️ Los clientes con turnos activos no serán notificados automáticamente.
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:12px;">
+      <button class="btn danger lg" onclick="confirmDeleteBiz()">Sí, eliminar negocio</button>
+      <button class="btn lg" onclick="closeDeleteModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CANCELAR TURNO (negocio) -->
+<div class="modal-overlay hidden" id="cancelModal">
+  <div class="modal-box">
+    <h3>⚠️ Cancelar turno</h3>
+    <p>El usuario recibirá una notificación de cancelación en su panel.</p>
+    <div class="modal-appt-info" id="cancelApptInfo"></div>
+    <div class="form-group">
+      <label class="form-label">Motivo de cancelación (opcional)</label>
+      <textarea class="form-textarea" id="cancelReason" placeholder="Ej: Cierre por feriado, problema con el horario..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger lg" onclick="confirmCancelAppt()">Confirmar cancelación</button>
+      <button class="btn" onclick="closeCancelModal()">Volver</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="app.js"></script>
+<script>
+  let currentUser, myBiz = null;
+  const ICONS = ['🏥','✂️','🐾','⚖️','🏋️','🦷','💈','🧘','📚','🧠','🥗','📊','🏪','💊','🔬','🌿','💅','👓','🎸','🎨'];
+
+  /* ── EMOJI DATA ── */
+  const EMOJI_CATEGORIES = [
+    { label: 'Negocios & Servicios', emojis: [
+      {e:'🏪',k:'tienda negocio comercio'},
+      {e:'🏬',k:'edificio tienda'},
+      {e:'🏥',k:'hospital salud clinica medico'},
+      {e:'💊',k:'pastilla farmacia medicamento'},
+      {e:'🔬',k:'microscopio laboratorio ciencia'},
+      {e:'🦷',k:'diente dentista odontologia'},
+      {e:'✂️',k:'tijera peluqueria corte barberia'},
+      {e:'💈',k:'barberia peluqueria barberopolo'},
+      {e:'💅',k:'uñas manicura pedicura belleza'},
+      {e:'🧴',k:'crema locion spa belleza'},
+      {e:'🧖',k:'spa masaje relajacion'},
+      {e:'🧘',k:'yoga meditacion bienestar fitness'},
+      {e:'🏋️',k:'gym gimnasio pesas fitness'},
+      {e:'🐾',k:'mascota veterinaria perro gato'},
+      {e:'🐶',k:'perro mascota veterinaria'},
+      {e:'🐱',k:'gato mascota veterinaria'},
+      {e:'⚖️',k:'abogado justicia ley profesional'},
+      {e:'📊',k:'estadistica contabilidad profesional'},
+      {e:'💼',k:'maletín trabajo profesional negocio'},
+      {e:'🏛️',k:'edificio gobierno institución'},
+      {e:'📚',k:'libros educacion estudio'},
+      {e:'🎓',k:'educacion graduacion universidad'},
+      {e:'🖥️',k:'computadora tecnología informática'},
+      {e:'📱',k:'celular móvil tecnología'},
+      {e:'🔧',k:'llave herramienta servicio técnico'},
+      {e:'🔨',k:'martillo construcción reparación'},
+      {e:'🏗️',k:'construcción obra'},
+      {e:'🏠',k:'casa inmobiliaria hogar'},
+      {e:'🚗',k:'auto mecánica taller'},
+      {e:'🛻',k:'camioneta transporte taller'},
+      {e:'🚌',k:'colectivo transporte'},
+      {e:'✈️',k:'avión viaje turismo agencia'},
+      {e:'🌿',k:'natural planta hierbas salud'},
+      {e:'🌱',k:'planta natural eco verde'},
+      {e:'🥗',k:'ensalada comida saludable nutricion'},
+      {e:'🍕',k:'pizza comida restaurante'},
+      {e:'🍔',k:'hamburguesa comida fastfood'},
+      {e:'☕',k:'cafe cafeteria desayuno'},
+      {e:'🍰',k:'torta pasteleria reposteria'},
+      {e:'🎂',k:'cumpleaños torta pasteleria'},
+      {e:'🎵',k:'musica clases instrumento'},
+      {e:'🎸',k:'guitarra musica instrumento'},
+      {e:'🎨',k:'arte pintura diseño'},
+      {e:'📷',k:'camara fotografia fotos'},
+      {e:'👗',k:'vestido moda ropa boutique'},
+      {e:'👟',k:'zapatilla calzado ropa'},
+      {e:'👓',k:'lentes optica vision'},
+      {e:'💎',k:'joya joyeria anillo'},
+      {e:'🌸',k:'flor flores floristeria'},
+      {e:'💐',k:'ramo flores floristeria'},
+    ]},
+    { label: 'Salud & Bienestar', emojis: [
+      {e:'❤️',k:'corazon salud'},
+      {e:'🫀',k:'corazon salud cardiologia'},
+      {e:'🧠',k:'cerebro neurología psicologia'},
+      {e:'👁️',k:'ojo oftalmologia vision'},
+      {e:'👂',k:'oído audiologia otorrino'},
+      {e:'🦴',k:'hueso ortopedia traumatologia'},
+      {e:'💉',k:'inyeccion vacuna enfermeria'},
+      {e:'🩺',k:'estetoscopio medico clinico'},
+      {e:'🩻',k:'radiografia rayos'},
+      {e:'🧬',k:'adn genetica biologia'},
+      {e:'🏃',k:'correr running deporte'},
+      {e:'🚴',k:'bicicleta ciclismo deporte'},
+      {e:'🤸',k:'gimnasia acrobacia'},
+      {e:'🧗',k:'escalada deporte'},
+      {e:'🥊',k:'boxeo deporte combate'},
+      {e:'🎾',k:'tenis raqueta deporte'},
+      {e:'⚽',k:'futbol deporte'},
+      {e:'🏊',k:'natacion pileta deporte'},
+    ]},
+    { label: 'Estrellas & Símbolos', emojis: [
+      {e:'⭐',k:'estrella'},
+      {e:'🌟',k:'estrella brillante'},
+      {e:'✨',k:'brillos destellos'},
+      {e:'💫',k:'estrella giro'},
+      {e:'🔥',k:'fuego popular'},
+      {e:'💡',k:'idea luz bombilla'},
+      {e:'🎯',k:'objetivo meta diana'},
+      {e:'🏆',k:'trofeo ganador premio'},
+      {e:'🥇',k:'oro primer lugar medal'},
+      {e:'🎖️',k:'medalla premio'},
+      {e:'🎪',k:'circo evento shows'},
+      {e:'🎭',k:'teatro arte'},
+      {e:'🎬',k:'cine pelicula'},
+      {e:'🎁',k:'regalo evento'},
+      {e:'🎉',k:'fiesta celebracion'},
+      {e:'🎊',k:'confeti celebracion'},
+      {e:'📍',k:'pin ubicacion lugar'},
+      {e:'📌',k:'pin fijo'},
+      {e:'🔑',k:'llave acceso'},
+      {e:'🔐',k:'candado seguridad'},
+      {e:'✅',k:'check ok correcto'},
+      {e:'💯',k:'cien perfecto'},
+      {e:'♾️',k:'infinito siempre'},
+    ]},
+    { label: 'Personas & Profesiones', emojis: [
+      {e:'👨‍⚕️',k:'medico doctor salud'},
+      {e:'👩‍⚕️',k:'doctora medica salud'},
+      {e:'👨‍🍳',k:'cocinero chef gastronomia'},
+      {e:'👩‍🍳',k:'cocinera chef gastronomia'},
+      {e:'👨‍🏫',k:'profesor educacion maestro'},
+      {e:'👩‍🏫',k:'profesora educacion maestra'},
+      {e:'👨‍💼',k:'hombre traje profesional'},
+      {e:'👩‍💼',k:'mujer traje profesional'},
+      {e:'👨‍🔬',k:'cientifico laboratorio'},
+      {e:'👩‍🔬',k:'cientifica laboratorio'},
+      {e:'👨‍🎨',k:'artista diseñador'},
+      {e:'👩‍🎨',k:'artista diseñadora'},
+      {e:'💇',k:'peluqueria corte cabello'},
+      {e:'💆',k:'masaje relajacion spa'},
+      {e:'🧑‍💻',k:'programador tecnología'},
+    ]},
+  ];
+  const ALL_EMOJIS = EMOJI_CATEGORIES.flatMap(c => c.emojis.map(e => ({...e, cat: c.label})));
+
+  /* ── EMOJI PICKER FUNCTIONS ── */
+  function toggleEmojiPanel() {
+    const panel = document.getElementById('emojiPanel');
+    const arrow = document.getElementById('emojiOpenArrow');
+    const isOpen = panel.classList.contains('open');
+    if (isOpen) {
+      panel.classList.remove('open');
+      arrow.style.transform = 'rotate(0deg)';
+    } else {
+      panel.classList.add('open');
+      arrow.style.transform = 'rotate(180deg)';
+      document.getElementById('emojiSearch').value = '';
+      renderEmojiPanel(ALL_EMOJIS, true);
+      setTimeout(() => document.getElementById('emojiSearch').focus(), 50);
+    }
+  }
+
+  function filterEmojis(q) {
+    if (!q.trim()) {
+      renderEmojiPanel(ALL_EMOJIS, true);
+    } else {
+      const term = q.toLowerCase();
+      const filtered = ALL_EMOJIS.filter(e =>
+        e.e.includes(q) || e.k.toLowerCase().includes(term)
+      );
+      renderEmojiPanel(filtered, false);
+    }
+  }
+
+  function renderEmojiPanel(list, grouped) {
+    const container = document.getElementById('emojiPanelContent');
+    const currentIcon = document.getElementById('bizIcon').value || '🏪';
+    if (!list.length) {
+      container.innerHTML = '<p style="font-size:12px;color:var(--blue-200);padding:10px 0;">Sin resultados. Probá otra búsqueda.</p>';
+      return;
+    }
+    if (!grouped) {
+      container.innerHTML = `<div class="emoji-grid">${list.map(item =>
+        `<div class="emoji-item${item.e===currentIcon?' selected':''}" onclick="selectEmoji('${item.e}')" title="${item.k}">${item.e}</div>`
+      ).join('')}</div>`;
+      return;
+    }
+    container.innerHTML = EMOJI_CATEGORIES.map(cat => {
+      const items = cat.emojis;
+      if (!items.length) return '';
+      return `<div class="emoji-category-label">${cat.label}</div>
+        <div class="emoji-grid">${items.map(item =>
+          `<div class="emoji-item${item.e===currentIcon?' selected':''}" onclick="selectEmoji('${item.e}')" title="${item.k}">${item.e}</div>`
+        ).join('')}</div>`;
+    }).join('');
+  }
+
+  function selectEmoji(emoji) {
+    document.getElementById('bizIcon').value = emoji;
+    document.getElementById('emojiPreviewBadge').textContent = emoji;
+    // Also sync legacy icon-opt grid
+    document.querySelectorAll('.icon-opt').forEach(o => { o.classList.toggle('selected', o.textContent.trim() === emoji); });
+    // Update selected state in emoji panel
+    document.querySelectorAll('.emoji-item').forEach(el => {
+      el.classList.toggle('selected', el.textContent.trim() === emoji);
+    });
+    toggleEmojiPanel();
+  }
+
+  // Close emoji panel when clicking outside
+  document.addEventListener('click', function(e) {
+    const wrap = document.querySelector('.emoji-picker-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      const panel = document.getElementById('emojiPanel');
+      const arrow = document.getElementById('emojiOpenArrow');
+      if (panel && panel.classList.contains('open')) {
+        panel.classList.remove('open');
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      }
+    }
+  });
+  const DAYS_LABELS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  let selectedWorkDays = [1,2,3,4,5];
+  let agendaDate = null;
+  let cancellingApptId = null;
+
+  window.onload = function() {
+    currentUser = requireAuth('business');
+    if (!currentUser) return;
+    document.getElementById('navUser').textContent = currentUser.name + ' ' + currentUser.lastName;
+    buildIconGrid();
+    buildDaysRow();
+    loadMyBiz();
+    showPage('dashboard');
+    checkBizNotifs();
+  };
+
+  function checkBizNotifs() {
+    if (!myBiz) { myBiz = DB.getMyBusiness(currentUser.id); }
+    if (!myBiz) return;
+    const pending = DB.getPendingBizNotifs(myBiz.id);
+    if (!pending.length) return;
+    const n = pending.length;
+    const names = [...new Set(pending.map(a => a.userName || 'Usuario'))].slice(0,3).join(', ');
+    document.getElementById('bizNotifTitle').textContent = `${n} turno${n>1?'s':''} cancelado${n>1?'s':''} por un cliente`;
+    document.getElementById('bizNotifSub').textContent = `De: ${names}. Revisá tu agenda para reorganizar los horarios.`;
+    document.getElementById('bizNotifBanner').style.display = 'flex';
+  }
+
+  function dismissBizNotif() {
+    if (!myBiz) return;
+    DB.markBizNotified(myBiz.id);
+    document.getElementById('bizNotifBanner').style.display = 'none';
+  }
+
+  function showPage(page) {
+    ['dashboard','agenda','clientes','negocio','resenas'].forEach(p => {
+      document.getElementById('page-'+p).classList.toggle('hidden', p !== page);
+      const sb = document.getElementById('sb-'+p);
+      if (sb) sb.classList.toggle('active', p === page);
+    });
+    if (page === 'dashboard') { renderDashboard(); checkBizNotifs(); }
+    if (page === 'agenda')    renderAgenda();
+    if (page === 'clientes')  renderClients();
+    if (page === 'negocio')   renderNegocioForm();
+    if (page === 'resenas')   renderBizResenas();
+  }
+
+  /* ── ICON GRID ── */
+function buildIconGrid() {
+  const el = document.getElementById('iconGrid');
+  if (!el) return;
+  el.innerHTML = ICONS.map(ic => `
+    <div class="icon-opt ${ic==='🏪'?'selected':''}" onclick="selectIcon(this,'${ic}')" title="${ic}">${ic}</div>
+  `).join('');
+}
+  function selectIcon(el, icon) {
+    document.querySelectorAll('.icon-opt').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('bizIcon').value = icon;
+  }
+
+  /* ── DAYS ROW ── */
+  function buildDaysRow() {
+    document.getElementById('daysRow').innerHTML = DAYS_LABELS.map((d,i) => `
+      <button type="button" class="day-toggle ${selectedWorkDays.includes(i)?'active':''}"
+        onclick="toggleDay(this,${i})">${d}</button>
+    `).join('');
+  }
+  function toggleDay(el, idx) {
+    if (selectedWorkDays.includes(idx)) selectedWorkDays = selectedWorkDays.filter(d => d !== idx);
+    else selectedWorkDays.push(idx);
+    el.classList.toggle('active', selectedWorkDays.includes(idx));
+    updateSlotPreview();
+  }
+
+  let depositEnabled = false;
+
+  let block2Enabled = false;
+  function toggleBlock2(forceValue) {
+    if (forceValue !== undefined)
+      block2Enabled = !!forceValue;
+    else
+      block2Enabled = !block2Enabled;
+    document.getElementById('block2Fields').style.display = block2Enabled ? 'block' : 'none';
+    document.getElementById('block2ToggleTrack').style.background   = block2Enabled ? 'var(--blue-600)' : 'rgba(99,102,184,.15)';
+    document.getElementById('block2ToggleTrack').style.borderColor  = block2Enabled ? 'var(--blue-600)' : 'rgba(99,102,184,.2)';
+    document.getElementById('block2ToggleThumb').style.transform    = block2Enabled ? 'translateX(20px)' : 'translateX(0)';
+    document.getElementById('block2ToggleThumb').style.background   = block2Enabled ? '#fff' : 'var(--blue-200)';
+    document.getElementById('block2ToggleLabel').textContent = block2Enabled ? 'Segundo bloque activo' : 'Agregar segundo bloque horario';
+    updateSlotPreview();
+  }
+
+  function toggleDepositFields(forceValue) {
+    if (forceValue !== undefined) {
+      depositEnabled = !!forceValue;
+    } else {
+      depositEnabled = !depositEnabled;
+    }
+    document.getElementById('depositFields').style.display = depositEnabled ? 'block' : 'none';
+    document.getElementById('depositToggleTrack').style.background = depositEnabled ? 'var(--blue-600)' : 'rgba(99,102,184,.15)';
+    document.getElementById('depositToggleTrack').style.borderColor = depositEnabled ? 'var(--blue-600)' : 'rgba(99,102,184,.2)';
+    document.getElementById('depositToggleThumb').style.transform = depositEnabled ? 'translateX(20px)' : 'translateX(0)';
+    document.getElementById('depositToggleThumb').style.background = depositEnabled ? '#fff' : 'var(--blue-200)';
+    document.getElementById('depositToggleLabel').textContent = depositEnabled ? 'El turno requiere seña' : 'El turno no requiere seña';
+  }
+
+  /* ── LOAD / FILL BIZ ── */
+  function loadMyBiz() {
+    myBiz = DB.getMyBusiness(currentUser.id);
+    if (myBiz) fillForm(myBiz);
+  }
+
+  function fillForm(b) {
+    document.getElementById('bizName').value     = b.name     || '';
+    document.getElementById('bizType').value     = b.type     || '';
+    document.getElementById('bizCat').value      = b.category || 'otro';
+    document.getElementById('bizAddr').value     = b.address  || '';
+    document.getElementById('bizPhone').value    = b.phone    || '';
+    document.getElementById('bizDesc').value     = b.desc     || '';
+    document.getElementById('bizStart').value    = b.startTime|| '09:00';
+    document.getElementById('bizEnd').value      = b.endTime  || '18:00';
+    document.getElementById('bizInterval').value = String(b.interval || 30);
+    // Bloque 2
+    if (b.startTime2 && b.endTime2) {
+      toggleBlock2(true);
+      document.getElementById('bizStart2').value = b.startTime2;
+      document.getElementById('bizEnd2').value   = b.endTime2;
+    } else {
+      toggleBlock2(false);
+    }
+    document.getElementById('bizIcon').value     = b.icon     || '🏪';
+    document.getElementById('emojiPreviewBadge').textContent = b.icon || '🏪';
+    selectedWorkDays = b.workDays ? [...b.workDays] : [1,2,3,4,5];
+    document.querySelectorAll('.icon-opt').forEach(o => { o.classList.toggle('selected', o.textContent === b.icon); });
+    // Seña
+    if (b.requireDeposit) {
+      document.getElementById('bizDepositAlias').value  = b.depositAlias  || '';
+      document.getElementById('bizDepositHolder').value = b.depositHolder || '';
+      document.getElementById('bizDepositAmount').value = b.depositAmount || '';
+      document.getElementById('bizDepositPhone').value  = b.depositPhone  || '';
+    }
+    toggleDepositFields(!!b.requireDeposit);
+    buildDaysRow();
+    updateSlotPreview();
+  }
+
+  /* ── SAVE BIZ ── */
+  function saveBiz() {
+    const name  = document.getElementById('bizName').value.trim();
+    const type  = document.getElementById('bizType').value.trim();
+    const cat   = document.getElementById('bizCat').value;
+    const addr  = document.getElementById('bizAddr').value.trim();
+    const phone = document.getElementById('bizPhone').value.trim();
+    const desc  = document.getElementById('bizDesc').value.trim();
+    const start = document.getElementById('bizStart').value;
+    const end   = document.getElementById('bizEnd').value;
+    const iv    = parseInt(document.getElementById('bizInterval').value);
+    const icon  = document.getElementById('bizIcon').value;
+    const requireDeposit = depositEnabled;
+    const depositAlias  = document.getElementById('bizDepositAlias').value.trim();
+    const depositHolder = document.getElementById('bizDepositHolder').value.trim();
+    const depositAmount = parseFloat(document.getElementById('bizDepositAmount').value) || 0;
+    const depositPhone  = document.getElementById('bizDepositPhone').value.trim();
+    // Bloque 2
+    const block2Active = document.getElementById('block2Fields').style.display !== 'none';
+    const start2 = block2Active ? document.getElementById('bizStart2').value : '';
+    const end2   = block2Active ? document.getElementById('bizEnd2').value   : '';
+
+    if (!name || !type || !start || !end) { showBizAlert('Completá los campos obligatorios (*)','error'); return; }
+    if (start >= end) { showBizAlert('El horario de cierre debe ser posterior a la apertura.','error'); return; }
+    if (block2Active) {
+      if (!start2 || !end2) { showBizAlert('Completá las horas del segundo bloque o desactivalo.','error'); return; }
+      if (start2 >= end2) { showBizAlert('El cierre del bloque 2 debe ser posterior a la apertura.','error'); return; }
+      if (start2 < end) { showBizAlert('El bloque 2 debe comenzar después del cierre del bloque 1.','error'); return; }
+    }
+    if (!selectedWorkDays.length) { showBizAlert('Seleccioná al menos un día de atención.','error'); return; }
+    if (requireDeposit && (!depositAlias || !depositHolder || !depositAmount || !depositPhone)) { showBizAlert('Completá todos los datos de la seña (alias/CVU, titular, monto y teléfono).','error'); return; }
+
+    const isNew = !myBiz;
+
+    // Detectar si hubo cambios cuando el negocio ya existe
+    let hasChanges = isNew;
+    if (!isNew) {
+      const prev = myBiz;
+      const prevDays = [...(prev.workDays || [])].sort().join(',');
+      const newDays  = [...selectedWorkDays].sort().join(',');
+      hasChanges = (
+        prev.name          !== name           ||
+        prev.type          !== type           ||
+        (prev.category     || 'otro') !== cat ||
+        (prev.address      || '') !== addr    ||
+        (prev.phone        || '') !== phone   ||
+        (prev.desc         || '') !== desc    ||
+        (prev.startTime    || '') !== start   ||
+        (prev.endTime      || '') !== end     ||
+        (prev.interval     || 30) !== iv      ||
+        (prev.icon         || '🏪') !== icon  ||
+        (prev.startTime2   || '') !== (block2Active ? start2 : '') ||
+        (prev.endTime2     || '') !== (block2Active ? end2   : '') ||
+        !!prev.requireDeposit     !== requireDeposit               ||
+        (prev.depositAlias  || '') !== depositAlias                ||
+        (prev.depositHolder || '') !== depositHolder               ||
+        (prev.depositAmount || 0) !== depositAmount                ||
+        (prev.depositPhone  || '') !== depositPhone                ||
+        prevDays !== newDays
+      );
+    }
+
+    const biz = {
+      id:        myBiz ? myBiz.id : Date.now(),
+      ownerId:   currentUser.id,
+      name, type, category: cat, address: addr, phone, desc, icon,
+      startTime: start, endTime: end, interval: iv,
+      startTime2: block2Active ? start2 : '', endTime2: block2Active ? end2 : '',
+      workDays:  [...selectedWorkDays].sort(), active: true,
+      requireDeposit, depositAlias, depositHolder, depositAmount, depositPhone
+    };
+
+    DB.saveBusiness(biz);
+    myBiz = biz;
+    document.getElementById('btnDelete').style.display = 'block';
+
+    if (isNew) {
+      showBizAlert('¡Negocio creado con éxito!', 'success');
+    } else if (hasChanges) {
+      showBizAlert('¡Cambios guardados con éxito!', 'success');
+    }
+    // Si no es nuevo y no hubo cambios, no se muestra ningún mensaje
+  }
+
+  function renderBizResenas() {
+    if (!myBiz) {
+      document.getElementById('bizReviewStats').innerHTML = '';
+      document.getElementById('bizReviewList').innerHTML = '<p style="color:var(--blue-200);">Configurá tu negocio primero para ver reseñas.</p>';
+      return;
+    }
+    const reviews = DB.getBizReviews(myBiz.id);
+    const avg = DB.getBizAvgRating(myBiz.id);
+    const stats = document.getElementById('bizReviewStats');
+    const totalStars = reviews.filter(r=>r.rating>0).length;
+    stats.innerHTML = `
+      <div class="stat-card"><span class="stat-num">${reviews.length}</span><span class="stat-lbl">Reseñas</span></div>
+      <div class="stat-card"><span class="stat-num">${avg ? '⭐ '+avg : '–'}</span><span class="stat-lbl">Promedio</span></div>
+      <div class="stat-card"><span class="stat-num">${reviews.filter(r=>r.rating>=4).length}</span><span class="stat-lbl">Positivas</span></div>
+    `;
+    const list = document.getElementById('bizReviewList');
+    if (!reviews.length) {
+      list.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--blue-200);">⭐ Aún no tenés reseñas.</div>';
+      return;
+    }
+    list.innerHTML = [...reviews].sort((a,b)=>b.id-a.id).map(r => {
+      const stars = [1,2,3,4,5].map(i =>
+        `<span style="color:${i<=r.rating?'#f5c842':'rgba(99,102,184,.2)'};font-size:16px;">★</span>`
+      ).join('');
+      const date = new Date(r.updatedAt||r.createdAt).toLocaleDateString('es-AR');
+      return `<div style="background:var(--glass);border:var(--border);border-radius:var(--r-lg);padding:16px 18px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-weight:600;color:var(--blue-50);font-size:14px;margin-bottom:3px;">👤 ${r.userName}</div>
+            <div>${stars} <span style="font-size:11px;color:var(--blue-200);margin-left:4px;">${date}</span></div>
+          </div>
+        </div>
+        ${r.comment ? `<p style="font-size:13px;color:var(--blue-100);margin-top:10px;line-height:1.6;padding-top:10px;border-top:1px solid rgba(99,102,184,.1);">"${r.comment}"</p>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function deleteBiz() {
+    if (!myBiz) return;
+    document.getElementById('deleteModal').classList.remove('hidden');
+  }
+
+  function confirmDeleteBiz() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    DB.deleteBusiness(myBiz.id);
+    myBiz = null;
+    showPage('dashboard');
+    Toast.show('Negocio eliminado.', 'info');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+  }
+
+  function showBizAlert(msg, type) {
+    Toast.show(msg, type === 'error' ? 'error' : type === 'success' ? 'success' : 'info');
+  }
+
+  /* ── SLOT PREVIEW ── */
+  function updateSlotPreview() {
+    const start = document.getElementById('bizStart').value;
+    const end   = document.getElementById('bizEnd').value;
+    const iv    = parseInt(document.getElementById('bizInterval').value) || 30;
+    if (!start || !end || start >= end) {
+      document.getElementById('previewInfo').textContent = '';
+      document.getElementById('slotPreview').innerHTML = '';
+      return;
+    }
+    let slots = DB.generateSlots(start, end, iv);
+
+    // Bloque 2
+    const block2Active = document.getElementById('block2Fields').style.display !== 'none';
+    if (block2Active) {
+      const start2 = document.getElementById('bizStart2').value;
+      const end2   = document.getElementById('bizEnd2').value;
+      if (start2 && end2 && start2 < end2) {
+        slots = slots.concat(DB.generateSlots(start2, end2, iv));
+      }
+    }
+
+    const daysStr = selectedWorkDays.length
+      ? selectedWorkDays.map(d => ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d]).join(', ')
+      : 'Ningún día seleccionado';
+    const ivLabel = iv < 60 ? `${iv} min` : iv % 60 === 0 ? `${iv/60} h` : `${Math.floor(iv/60)} h ${iv%60} min`;
+    document.getElementById('previewInfo').textContent = `${slots.length} turnos · cada ${ivLabel} · Días: ${daysStr}`;
+    document.getElementById('slotPreview').innerHTML = slots.map(s =>
+      `<span style="padding:4px 9px;border:1px solid rgba(99,102,184,.2);border-radius:6px;font-size:11px;color:var(--blue-200);">${s}</span>`
+    ).join('');
+  }
+
+  /* ── DASHBOARD ── */
+  function renderDashboard() {
+    myBiz = DB.getMyBusiness(currentUser.id);
+    const noNeg = document.getElementById('noNegocioAlert');
+    const stats = document.getElementById('dashStats');
+    const recent = document.getElementById('recentAppts');
+
+    if (!myBiz) {
+      noNeg.classList.add('hidden');
+      document.getElementById('dashTitle').textContent = currentUser.name + ' ' + currentUser.lastName;
+      document.getElementById('dashSub').textContent   = 'Configurá tu negocio para que los usuarios puedan reservar turnos';
+      stats.innerHTML = `
+        <div class="stat-card"><span class="stat-num">0</span><span class="stat-lbl">Turnos activos</span></div>
+        <div class="stat-card"><span class="stat-num">0</span><span class="stat-lbl">Hoy</span></div>
+        <div class="stat-card"><span class="stat-num">0</span><span class="stat-lbl">Clientes únicos</span></div>
+        <div class="stat-card"><span class="stat-num">0</span><span class="stat-lbl">Cancelados</span></div>
+      `;
+      recent.innerHTML = `
+        <div style="background:rgba(57,60,128,.08);border:1px solid rgba(99,102,184,.15);border-radius:var(--r-lg);padding:28px;max-width:560px;text-align:center;margin-top:8px;">
+          <div style="font-size:36px;margin-bottom:10px;">🏪</div>
+          <div style="font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--blue-50);margin-bottom:8px;">Todavía no configuraste tu negocio</div>
+          <p style="font-size:13px;color:var(--blue-200);margin-bottom:18px;">Completá los datos para que los usuarios puedan reservar turnos con vos.</p>
+          <button class="btn primary" onclick="showPage('negocio')">Configurar mi negocio →</button>
+        </div>
+      `;
+      return;
+    }
+    noNeg.classList.add('hidden');
+    document.getElementById('dashTitle').textContent = myBiz.name;
+    document.getElementById('dashSub').textContent   = myBiz.type + ' · ' + (myBiz.address || '');
+
+    const appts   = DB.getBizAppointments(myBiz.id);
+    const active  = appts.filter(a=>!a.status.startsWith('cancel'));
+    const cancelled = appts.filter(a=>a.status.startsWith('cancel'));
+    const today   = new Date().toLocaleDateString('es-AR');
+    const todayA  = active.filter(a => a.date === today);
+
+    stats.innerHTML = `
+      <div class="stat-card"><span class="stat-num">${active.length}</span><span class="stat-lbl">Turnos activos</span></div>
+      <div class="stat-card"><span class="stat-num">${todayA.length}</span><span class="stat-lbl">Hoy</span></div>
+      <div class="stat-card"><span class="stat-num">${[...new Set(active.map(a=>a.userId))].length}</span><span class="stat-lbl">Clientes únicos</span></div>
+      <div class="stat-card"><span class="stat-num">${cancelled.length}</span><span class="stat-lbl">Cancelados</span></div>
+    `;
+
+    const lastAppts = [...appts].sort((a,b)=>b.id-a.id).slice(0,8);
+    const users = DB.getUsers();
+
+    if (!lastAppts.length) {
+      recent.innerHTML = '<div class="empty"><div class="em-ico">📅</div><p>Todavía no hay turnos reservados.</p></div>';
+      return;
+    }
+
+    recent.innerHTML = `
+      <div style="font-family:var(--font-display);font-size:13px;color:var(--blue-400);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Últimos turnos</div>
+      ${lastAppts.map(a => {
+        const u = users.find(u => u.id === a.userId);
+        const isCancelled = a.status.startsWith('cancel');
+        const cancelledByBiz = a.cancelledBy === 'business';
+        return `<div class="appt-table-row">
+          <span class="appt-table-time">${a.time} hs</span>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:500;color:var(--blue-50);">${u ? u.name+' '+u.lastName : 'Usuario'}${a.forThirdParty ? ` <span style="font-size:11px;font-weight:400;color:var(--blue-200);">→ ${a.thirdPartyName}</span>` : ''}</div>
+            <div style="font-size:11px;color:var(--blue-200);">${a.dateLabel || a.date}</div>
+          </div>
+          <span class="badge ${isCancelled ? 'cancelled' : 'green'}">
+            ${isCancelled ? (cancelledByBiz ? 'Cancelado por vos' : 'Cancelado por usuario') : 'Confirmado'}
+          </span>
+        </div>`;
+      }).join('')}
+    `;
+  }
+
+  /* ── AGENDA ── */
+  function renderAgenda() {
+    myBiz = DB.getMyBusiness(currentUser.id);
+    if (!myBiz) {
+      document.getElementById('agendaSlots').innerHTML = '<div class="empty"><div class="em-ico">🏪</div><p>Primero configurá tu negocio.</p><button class="btn primary" onclick="showPage(\'negocio\')" style="margin-top:12px;">Configurar</button></div>';
+      document.getElementById('agendaHdr').innerHTML = '';
+      return;
+    }
+
+    const dates = Dates.getNext(14).filter(d => myBiz.workDays ? myBiz.workDays.includes(d.weekday) : true);
+    if (!agendaDate || !dates.find(d=>d.key===agendaDate.key)) agendaDate = dates[0];
+
+    document.getElementById('agendaHdr').innerHTML = dates.map(d => `
+      <div class="agenda-date ${agendaDate && agendaDate.key===d.key?'active':''}"
+        onclick="setAgendaDate('${d.key}','${d.dow}','${d.day}','${d.month}')">
+        <span class="dow">${d.dow}</span>
+        <span class="day">${d.day}</span>
+      </div>
+    `).join('');
+
+    renderAgendaSlots();
+  }
+
+  function setAgendaDate(key, dow, day, month) {
+    agendaDate = { key, dow, day, month, label: `${dow} ${day} de ${month}` };
+    renderAgenda();
+  }
+
+  function renderAgendaSlots() {
+    if (!myBiz || !agendaDate) return;
+    const slots = DB.generateSlots(myBiz.startTime, myBiz.endTime, myBiz.interval || 30)
+      .concat(myBiz.startTime2 && myBiz.endTime2 ? DB.generateSlots(myBiz.startTime2, myBiz.endTime2, myBiz.interval || 30) : []);
+    const appts = DB.getBizAppointments(myBiz.id).filter(a => a.date === agendaDate.key);
+    const users = DB.getUsers();
+
+    if (!slots.length) {
+      document.getElementById('agendaSlots').innerHTML = '<div class="empty"><p>Sin horarios configurados.</p></div>';
+      return;
+    }
+
+    document.getElementById('agendaSlots').innerHTML = slots.map(t => {
+      // Prefer active (non-cancelled) appointment; fall back to cancelled one
+      const allForSlot = appts.filter(a => a.time === t);
+      const appt = allForSlot.find(a => !a.status.startsWith('cancel')) || allForSlot[allForSlot.length - 1];
+      const u = appt ? users.find(u => u.id === appt.userId) : null;
+      const isCancelled = appt && appt.status.startsWith('cancel');
+      const isActive = appt && !isCancelled;
+
+      return `<div class="slot-row ${isActive ? 'taken' : ''}">
+        <span class="slot-time">${t}</span>
+        <div class="slot-info">
+          ${appt
+            ? `<div class="slot-user ${isCancelled ? 'opacity-40' : ''}" style="${isCancelled?'opacity:.5;text-decoration:line-through;':''}">${u ? u.name+' '+u.lastName : 'Usuario'}${appt.forThirdParty ? ` <span style="font-size:11px;font-weight:400;color:var(--blue-200);">→ ${appt.thirdPartyName} · DNI ${appt.thirdPartyDni}</span>` : ''}</div>
+               <div class="slot-sub">${u ? u.email : ''}</div>`
+            : `<div class="slot-free">Disponible</div>`}
+        </div>
+        <div class="slot-actions">
+          ${isActive
+            ? `<span class="badge green">Reservado</span>
+               <button class="btn-cancel-appt" onclick="openCancelModal(${appt.id}, '${u ? u.name+' '+u.lastName : 'Usuario'}', '${t}', '${agendaDate.label||agendaDate.key}')">
+                 Cancelar
+               </button>`
+            : isCancelled
+              ? `<span class="badge cancelled">
+                   ${appt.cancelledBy==='business' ? 'Cancelado por vos' : 'Cancelado por usuario'}
+                 </span>`
+              : `<span class="badge">Libre</span>`
+          }
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ── MODAL CANCELAR TURNO ── */
+  function openCancelModal(apptId, userName, time, dateLabel) {
+    cancellingApptId = apptId;
+    document.getElementById('cancelApptInfo').innerHTML = `
+      <div class="user-name">👤 ${userName}</div>
+      <div class="appt-detail">🕐 ${time} hs  ·  📅 ${dateLabel}</div>
+    `;
+    document.getElementById('cancelReason').value = '';
+    document.getElementById('cancelModal').classList.remove('hidden');
+  }
+
+  function closeCancelModal() {
+    cancellingApptId = null;
+    document.getElementById('cancelModal').classList.add('hidden');
+  }
+
+  function confirmCancelAppt() {
+    if (!cancellingApptId) return;
+    const reason = document.getElementById('cancelReason').value.trim();
+    DB.cancelByBusiness(cancellingApptId, reason);
+    closeCancelModal();
+    Toast.show('Turno cancelado. El usuario será notificado.', 'warning');
+    renderAgendaSlots();
+    renderDashboard();
+  }
+
+  /* ── CLIENTES ── */
+  function renderClients() {
+    myBiz = DB.getMyBusiness(currentUser.id);
+    if (!myBiz) {
+      document.getElementById('clientList').innerHTML = '<div class="empty"><div class="em-ico">👥</div><p>Primero configurá tu negocio.</p></div>';
+      return;
+    }
+    const appts = DB.getBizAppointments(myBiz.id);
+    const userIds = [...new Set(appts.map(a => a.userId))];
+    const users = DB.getUsers();
+
+    if (!userIds.length) {
+      document.getElementById('clientList').innerHTML = '<div class="empty"><div class="em-ico">👥</div><p>Todavía no tenés clientes.</p></div>';
+      return;
+    }
+
+    document.getElementById('clientList').innerHTML = userIds.map(uid => {
+      const u = users.find(u => u.id === uid);
+      if (!u) return '';
+      const myAppts = appts.filter(a => a.userId === uid);
+      const active  = myAppts.filter(a=>!a.status.startsWith('cancel'));
+      const initials = ((u.name||'?')[0] + (u.lastName||'?')[0]).toUpperCase();
+      return `<div class="client-row">
+        <div class="client-avatar">${initials}</div>
+        <div class="client-info">
+          <div class="client-name">${u.name} ${u.lastName}</div>
+          <div class="client-meta">${u.email} · ${active.length} turno${active.length!==1?'s':''} activo${active.length!==1?'s':''}</div>
+        </div>
+        <span class="badge blue">${myAppts.length} total</span>
+      </div>`;
+    }).join('');
+  }
+
+  /* ── NEGOCIO FORM ── */
+  function renderNegocioForm() {
+    myBiz = DB.getMyBusiness(currentUser.id);
+    const btnSave = document.querySelector('[onclick="saveBiz()"]');
+    if (myBiz) {
+      fillForm(myBiz);
+      document.getElementById('btnDelete').style.display = 'block';
+      if (btnSave) btnSave.textContent = 'Guardar cambios';
+    } else {
+      document.getElementById('btnDelete').style.display = 'none';
+      if (btnSave) btnSave.textContent = 'Guardar negocio';
+      updateSlotPreview();
+    }
+  }
+
+  // Close modal on overlay click
+  document.getElementById('cancelModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCancelModal();
+  });
+  document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title> – Mis Turnos</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body { background: linear-gradient(160deg, var(--navy) 0%, var(--navy2) 60%, var(--navy3) 100%); }
+
+    .hero { padding: 44px 40px 32px; position: relative; overflow: hidden; }
+    .hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(99,102,184,.13) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-inner { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; }
+    .hero-tag {
+      display: inline-block; font-size: 10px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--blue-400); background: rgba(99,102,184,.1); border: 1px solid rgba(99,102,184,.2);
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 14px;
+    }
+    .hero h1 { font-family: var(--font-display); font-size: clamp(26px,4vw,40px); font-weight: 700; color: var(--blue-400); margin-bottom: 8px; }
+    .hero h1 em { color: var(--blue-50); font-style: normal; }
+    .hero p { font-size: 14px; color: var(--blue-200); max-width: 460px; }
+
+    /* NOTIF BANNER */
+    .notif-banner {
+      margin: 0 40px 0;max-width:1100px;
+      background: rgba(239,159,39,.1); border: 1px solid rgba(239,159,39,.35);
+      border-radius: var(--r-md); padding: 14px 18px;
+      display: flex; align-items: center; gap: 14px;
+      animation: slideDown .3s ease;
+    }
+    .notif-banner .nb-icon { font-size: 22px; flex-shrink:0; }
+    .notif-banner .nb-text { flex:1; }
+    .notif-banner .nb-title { font-size:14px;font-weight:600;color:var(--amber);margin-bottom:2px; }
+    .notif-banner .nb-sub   { font-size:12px;color:rgba(239,159,39,.75); }
+    .notif-banner .nb-btn {
+      font-family:var(--font-body);font-size:12px;font-weight:500;
+      padding:7px 14px;border-radius:16px;
+      border:1px solid rgba(239,159,39,.4);background:rgba(239,159,39,.1);color:var(--amber);
+      cursor:pointer;transition:all .2s;white-space:nowrap;
+    }
+    .notif-banner .nb-btn:hover { background:rgba(239,159,39,.2); }
+
+    /* SEARCH */
+    .search-section { background: rgba(255,255,255,.025); border-bottom: var(--border); padding: 20px 40px; }
+    .search-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .search-wrap {
+      flex: 1; min-width: 220px; display: flex; gap: 8px;
+      background: rgba(255,255,255,.04); border: var(--border); border-radius: var(--r-md); padding: 6px;
+    }
+    .search-wrap input { flex: 1; background: transparent; border: none; outline: none; font-family: var(--font-body); font-size: 13px; color: var(--blue-50); padding: 4px 10px; }
+    .search-wrap input::placeholder { color: rgba(181,212,244,.35); }
+    .search-wrap button { background: var(--blue-600); color: var(--blue-50); border: none; border-radius: 8px; font-family: var(--font-body); font-size: 13px; font-weight: 500; padding: 8px 16px; cursor: pointer; transition: background .2s; }
+    .search-wrap button:hover { background: var(--blue-700); }
+    .cats { display: flex; gap: 6px; flex-wrap: wrap; }
+    .cat-btn { font-family: var(--font-body); font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(99,102,184,.2); background: transparent; color: var(--blue-200); cursor: pointer; transition: all .2s; }
+    .cat-btn:hover, .cat-btn.active { background: var(--blue-600); border-color: var(--blue-600); color: var(--blue-50); }
+
+    /* MAIN */
+    .main { max-width: 1100px; margin: 0 auto; padding: 32px 40px; }
+    .section-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .section-ttl { font-family: var(--font-display); font-size: 13px; font-weight: 500; color: var(--blue-400); text-transform: uppercase; letter-spacing: 1.5px; }
+
+    /* BIZ GRID */
+    .biz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px,1fr)); gap: 12px; margin-bottom: 28px; }
+    .biz-card { background: var(--glass); border: var(--border); border-radius: var(--r-lg); padding: 20px; cursor: pointer; transition: all .22s; position: relative; overflow: hidden; }
+    .biz-card::before { content: ''; position: absolute; top:0;left:0;right:0; height:2px; background: linear-gradient(90deg,transparent,rgba(99,102,184,.5),transparent); opacity:0; transition: opacity .2s; }
+    .biz-card:hover { background: var(--glass-h); border-color: rgba(99,102,184,.38); transform: translateY(-3px); }
+    .biz-card:hover::before { opacity:1; }
+    .biz-card.selected { background: rgba(57,60,128,.18); border-color: var(--blue-400); }
+    .biz-icon { width:42px;height:42px; border-radius:10px; background:rgba(99,102,184,.12); border:1px solid rgba(99,102,184,.18); display:flex;align-items:center;justify-content:center; font-size:20px; margin-bottom:12px; }
+    .biz-name { font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--blue-50);margin-bottom:3px; }
+    .biz-type { font-size:11px;color:var(--blue-200);margin-bottom:8px; }
+    .biz-meta { display:flex;gap:6px;flex-wrap:wrap; }
+
+    /* BOOKING PANEL */
+    .booking-panel { display:none; background:rgba(8,18,36,.7); border:var(--border); border-radius:var(--r-xl); padding:28px; margin-bottom:28px; animation: slideDown .25s ease; backdrop-filter: blur(10px); }
+    .booking-panel.visible { display:block; }
+    .panel-header { display:flex;align-items:flex-start;justify-content:space-between; margin-bottom:24px;gap:12px; }
+    .panel-biz-name { font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--blue-50);margin-bottom:3px; }
+    .panel-biz-sub  { font-size:12px;color:var(--blue-200); }
+    .sub-label { font-size:11px;font-weight:500;color:var(--blue-200);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px; }
+
+    /* DATES */
+    .dates-row { display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:24px; }
+    .date-pill { flex-shrink:0;min-width:52px; padding:10px 14px;border-radius:var(--r-sm); border:1px solid rgba(99,102,184,.2);background:transparent; cursor:pointer;text-align:center;transition:all .2s; }
+    .date-pill.disabled { opacity:.3;cursor:not-allowed; }
+    .date-pill:not(.disabled):hover { border-color:rgba(99,102,184,.5);background:rgba(99,102,184,.07); }
+    .date-pill.active { background:var(--blue-600);border-color:var(--blue-600); }
+    .date-pill .dow { font-size:10px;font-weight:500;color:var(--blue-200);text-transform:uppercase;letter-spacing:.5px;display:block; }
+    .date-pill.active .dow { color:rgba(230,241,251,.6); }
+    .date-pill .day { font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--blue-50);display:block; }
+
+    /* SLOTS */
+    .slots-wrap { margin-bottom:24px; }
+    .slots-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:7px; }
+    .slot { padding:9px 4px;border-radius:8px; border:1px solid rgba(99,102,184,.15);background:transparent; color:var(--blue-100);font-size:12px;font-weight:500; cursor:pointer;text-align:center;transition:all .2s; font-family:var(--font-body); }
+    .slot:hover:not(:disabled) { background:rgba(99,102,184,.12);border-color:rgba(99,102,184,.4); }
+    .slot:disabled { opacity:.28;cursor:not-allowed;text-decoration:line-through; }
+    .slot.active { background:var(--blue-600);border-color:var(--blue-400);color:var(--blue-50); }
+    .no-slots { color:var(--blue-200);font-size:13px;padding:12px 0; }
+
+    /* CONFIRM BAR */
+    .confirm-bar { display:none;align-items:center;gap:14px; padding:16px 20px; background:rgba(57,60,128,.15); border:1px solid rgba(99,102,184,.28);border-radius:var(--r-md); }
+    .confirm-bar.visible { display:flex; }
+    .confirm-info { flex:1; }
+    .confirm-info strong { color:var(--blue-50);font-size:15px;display:block;margin-bottom:2px; }
+    .confirm-info small  { color:var(--blue-200);font-size:12px; }
+    .btn-confirm { font-family:var(--font-body);font-size:14px;font-weight:500; padding:12px 24px;background:var(--blue-600);color:var(--blue-50); border:none;border-radius:var(--r-md);cursor:pointer;transition:background .2s;white-space:nowrap; }
+    .btn-confirm:hover { background:var(--blue-700); }
+
+    /* SUCCESS */
+    .success-box { display:none;text-align:center;padding:24px; background:rgba(29,158,117,.1);border:1px solid var(--green-bd); border-radius:var(--r-md);margin-top:14px;animation:slideDown .25s ease; }
+    .success-box.visible { display:block; }
+    .success-box .suc-icon { font-size:36px;margin-bottom:8px; }
+    .success-box p { color:var(--green);font-size:16px;font-weight:500;margin-bottom:4px; }
+    .success-box small { color:var(--blue-200);font-size:13px; }
+
+    /* APPOINTMENTS */
+    .appt-list { display:flex;flex-direction:column;gap:10px; }
+    .appt-card { display:flex;align-items:center;gap:16px; background:var(--glass);border:var(--border);border-radius:var(--r-md); padding:16px 20px;transition:background .2s; }
+    .appt-card:hover { background:var(--glass-h); }
+    .appt-card.cancelled-by-biz { border-color:rgba(239,159,39,.35);background:rgba(239,159,39,.04); }
+    .appt-icon { font-size:24px;flex-shrink:0; }
+    .appt-info { flex:1; }
+    .appt-biz { font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--blue-50);margin-bottom:2px; }
+    .appt-time { font-size:12px;color:var(--blue-200); }
+    .appt-reason { font-size:11px;color:var(--amber);margin-top:4px; }
+    .appt-actions { display:flex;gap:6px;align-items:center; }
+    .btn-cancel { font-family:var(--font-body);font-size:12px;font-weight:500; padding:6px 12px;border-radius:20px; border:1px solid var(--red-bd);background:var(--red-bg);color:var(--red); cursor:pointer;transition:all .2s; }
+    .btn-cancel:hover { background:rgba(226,75,74,.2); }
+    .empty-state { text-align:center;padding:40px;color:var(--blue-200);font-size:14px; }
+    .empty-state .em-icon { font-size:40px;margin-bottom:12px; }
+
+    /* STATS */
+    .stats-row { display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px; }
+    .stat-card { flex:1;min-width:130px; background:var(--glass);border:var(--border);border-radius:var(--r-md); padding:16px 20px; }
+    .stat-num { font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--blue-400);display:block; }
+    .stat-lbl { font-size:11px;color:var(--blue-200);text-transform:uppercase;letter-spacing:1px; }
+
+    @media (max-width:640px) {
+      .hero,.search-section,.main { padding-left:16px;padding-right:16px; }
+      .notif-banner { margin: 0 16px; }
+      .biz-grid { grid-template-columns:1fr 1fr; }
+      .booking-panel { padding:20px; }
+      .confirm-bar { flex-direction:column;align-items:stretch; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="app.html" class="logo"><img src="saturnox.png" alt="SaturnoX" style="height:40px;width:auto;filter:brightness(1.1);vertical-align:middle;" /></a>
+  <div class="nav-right">
+    <span style="font-size:13px;color:var(--blue-200);" id="navUser"></span>
+    <button class="btn" onclick="showSection('mis-turnos')">Mis turnos</button>
+    <button class="btn" onclick="showSection('buscar')">Buscar negocio</button>
+    <button class="btn" onclick="showSection('mis-resenas')">Mis reseñas</button>
+    <button class="btn danger" onclick="logout()">Salir</button>
+  </div>
+</nav>
+
+<!-- NOTIFICATION BANNER (cancellation from business) -->
+<div id="notifBanner" style="max-width:1100px;margin:20px auto 0;padding:0 40px;display:none;">
+  <div class="notif-banner">
+    <div class="nb-icon">🔔</div>
+    <div class="nb-text">
+      <div class="nb-title" id="notifTitle"></div>
+      <div class="nb-sub" id="notifSub"></div>
+    </div>
+    <button class="nb-btn" onclick="viewCancelledTurnos()">Ver mis turnos</button>
+    <button class="nb-btn" onclick="dismissNotifs()" style="margin-left:4px;">✕</button>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">Panel de usuario</div>
+    <h1>Hola, <em id="heroName">...</em></h1>
+    <p>Reservá turnos en tus negocios favoritos o consultá tus reservas activas.</p>
+  </div>
+</div>
+
+<div class="search-section" id="searchSection">
+  <div class="search-inner">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Buscar negocio o rubro..." oninput="renderBiz()" />
+      <button onclick="applyFilters()">Buscar</button>
+    </div>
+    <div class="cats">
+      <button class="cat-btn active" onclick="filterCat(this,'all')">Todos</button>
+      <button class="cat-btn" onclick="filterCat(this,'salud')">Salud</button>
+      <button class="cat-btn" onclick="filterCat(this,'belleza')">Belleza</button>
+      <button class="cat-btn" onclick="filterCat(this,'veterinaria')">Veterinaria</button>
+      <button class="cat-btn" onclick="filterCat(this,'profesional')">Profesional</button>
+      <button class="cat-btn" onclick="filterCat(this,'fitness')">Fitness</button>
+      <button class="cat-btn" onclick="filterCat(this,'educacion')">Educación</button>
+      <button class="cat-btn" onclick="filterCat(this,'otro')">Otros</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- BUSCAR -->
+  <div id="sec-buscar">
+    <div class="section-hdr" style="margin-bottom:16px;">
+      <div class="section-ttl">Negocios disponibles</div>
+    </div>
+    <div class="biz-grid" id="bizGrid"></div>
+
+    <div class="booking-panel" id="bookingPanel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-biz-name" id="panelName"></div>
+          <div class="panel-biz-sub"  id="panelSub"></div>
+          <div id="panelPhone" style="font-size:13px;color:var(--blue-200);margin-top:6px;display:none;"></div>
+          <div id="panelDesc" style="font-size:16px;color:var(--amber);margin-top:5px;line-height:1.55;display:none;"><h3>Descripción:</h3></div>
+        </div>
+        <button class="btn" onclick="closePanel()">✕ Cerrar</button>
+      </div>
+
+      <div class="sub-label">Elegí el día</div>
+      <div class="dates-row" id="datePicker"></div>
+
+      <div class="slots-wrap">
+        <div class="sub-label" id="slotsLabel">Horarios</div>
+        <div class="slots-grid" id="slotsGrid"></div>
+      </div>
+
+      <div class="confirm-bar" id="confirmBar">
+        <div class="confirm-info">
+          <strong id="confirmSlot"></strong>
+          <small id="confirmDate"></small>
+        </div>
+        <!-- RESERVA PARA OTRA PERSONA -->
+        <div id="thirdPartyToggleRow" style="margin-bottom:12px;padding:12px 14px;background:rgba(99,102,184,.06);border:1px solid rgba(99,102,184,.15);border-radius:var(--r-md);">
+          <div style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;" onclick="toggleThirdParty()">
+            <div id="tpToggleTrack" style="position:relative;width:40px;height:22px;border-radius:11px;background:rgba(99,102,184,.15);border:1px solid rgba(99,102,184,.2);transition:all .25s;flex-shrink:0;">
+              <div id="tpToggleThumb" style="position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--blue-200);transition:all .25s;"></div>
+            </div>
+            <span style="font-size:13px;color:var(--blue-100);" id="tpToggleLabel">¿Reservar para otra persona?</span>
+          </div>
+          <div id="thirdPartyFields" style="display:none;margin-top:12px;animation:slideDown .2s ease;">
+            <div class="form-row" style="gap:10px;">
+              <div class="form-group" style="flex:1;margin-bottom:0;">
+                <label class="form-label" style="font-size:12px;">Nombre y apellido *</label>
+                <input class="form-input" type="text" id="tpName" placeholder="Ej: Ana García" style="font-size:13px;" />
+              </div>
+              <div class="form-group" style="flex:1;margin-bottom:0;">
+                <label class="form-label" style="font-size:12px;">DNI *</label>
+                <input class="form-input" type="text" id="tpDni" placeholder="Ej: 30456789" maxlength="8" style="font-size:13px;" oninput="this.value=this.value.replace(/\D/g,'')" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-confirm" onclick="confirmBooking()">Confirmar turno →</button>
+      </div>
+
+      <!-- INFO SEÑA -->
+      <div id="depositInfoBox" style="display:none;margin-top:16px;padding:16px 20px;background:rgba(239,159,39,.07);border:1px solid rgba(239,159,39,.3);border-radius:var(--r-md);">
+        <div style="font-size:12px;font-weight:600;color:#e0993a;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">💳 Este turno requiere seña</div>
+        <div style="font-size:13px;color:var(--blue-100);line-height:2;">
+          <div>Monto: <strong id="depositAmtLabel" style="color:var(--blue-50);"></strong></div>
+          <div>Titular: <strong id="depositHolderLabel" style="color:var(--blue-50);"></strong></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            Alias/CVU: <strong id="depositAliasLabel" style="color:var(--blue-50);"></strong>
+            <button onclick="copyAlias()" style="background:rgba(99,102,184,.15);border:1px solid rgba(99,102,184,.2);border-radius:6px;color:var(--blue-200);font-size:11px;padding:2px 8px;cursor:pointer;">Copiar</button>
+          </div>
+          <div>Enviar comprobante a: <strong id="depositPhoneLabel" style="color:var(--blue-50);"></strong></div>
+        </div>
+        <p style="font-size:11px;color:var(--blue-200);margin-top:8px;">Una vez realizada la transferencia, enviá el comprobante al número indicado.</p>
+      </div>
+
+      <div class="success-box" id="successBox">
+        <div class="suc-icon">✓</div>
+        <p>¡Turno confirmado!</p>
+        <small id="successDetail"></small>
+        <br><br>
+        <button class="btn primary" onclick="showSection('mis-turnos')">Ver mis turnos</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MIS TURNOS -->
+  <div id="sec-mis-turnos" class="hidden">
+    <div class="section-hdr" style="margin-bottom:20px;">
+      <div class="section-ttl">Mis reservas</div>
+      <button class="btn primary" onclick="showSection('buscar')">+ Nuevo turno</button>
+    </div>
+
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- FILTER TABS -->
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;" id="apptFilters">
+      <button class="cat-btn active" onclick="filterAppts(this,'all')">Todos</button>
+      <button class="cat-btn" onclick="filterAppts(this,'active')">Activos</button>
+      <button class="cat-btn" onclick="filterAppts(this,'cancelled')">Cancelados</button>
+    </div>
+
+    <div id="apptList" class="appt-list"></div>
+  </div>
+
+  <!-- RESEÑAS -->
+  <div id="sec-mis-resenas" class="hidden">
+    <div class="section-hdr" style="margin-bottom:20px;">
+      <div class="section-ttl">Mis reseñas</div>
+    </div>
+    <p style="font-size:13px;color:var(--blue-200);margin-bottom:20px;">Calificá los negocios donde reservaste turnos. Tu opinión ayuda a otros usuarios.</p>
+    <div id="resenasList" style="display:flex;flex-direction:column;gap:14px;"></div>
+  </div>
+
+</div>
+
+<!-- MODAL CANCELAR TURNO (usuario) -->
+<div id="cancelApptModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:1000;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--navy2);border:1px solid rgba(239,80,80,.25);border-radius:var(--r-xl);padding:32px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.5);">
+    <div style="font-size:36px;text-align:center;margin-bottom:12px;">⚠️</div>
+    <h3 style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--blue-50);text-align:center;margin-bottom:8px;">Cancelar turno</h3>
+    <div id="cancelApptDetail" style="background:rgba(255,255,255,.04);border:var(--border);border-radius:var(--r-md);padding:14px 16px;margin-bottom:16px;text-align:center;">
+      <div id="cancelApptBizName" style="font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--blue-50);margin-bottom:4px;"></div>
+      <div id="cancelApptDateTime" style="font-size:13px;color:var(--blue-200);"></div>
+    </div>
+    <p style="font-size:13px;color:var(--blue-200);text-align:center;margin-bottom:22px;">Esta acción no se puede deshacer. ¿Confirmás la cancelación?</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn danger lg" style="flex:1;" onclick="confirmCancelApptUser()">Sí, cancelar turno</button>
+      <button class="btn lg" style="flex:1;" onclick="closeCancelApptModal()">Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ELIMINAR RESEÑA -->
+<div id="deleteReviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:1000;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--navy2);border:1px solid rgba(239,80,80,.25);border-radius:var(--r-xl);padding:32px;max-width:400px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.5);text-align:center;">
+    <div style="width:56px;height:56px;background:rgba(239,80,80,.12);border:1px solid rgba(239,80,80,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">🗑️</div>
+    <h3 style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--blue-50);margin-bottom:8px;">Eliminar reseña</h3>
+    <p style="font-size:13px;color:var(--blue-200);margin-bottom:24px;line-height:1.6;">¿Estás seguro de que querés eliminar tu reseña?<br>Esta acción no se puede deshacer.</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn danger lg" style="flex:1;" onclick="confirmDeleteReview()">Sí, eliminar</button>
+      <button class="btn lg" style="flex:1;" onclick="closeDeleteReviewModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESEÑA -->
+<div id="reviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--navy2);border:var(--border);border-radius:var(--r-xl);padding:32px;max-width:460px;width:100%;">
+    <h3 style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--blue-50);margin-bottom:4px;" id="reviewModalTitle">Calificar negocio</h3>
+    <p style="font-size:13px;color:var(--blue-200);margin-bottom:20px;" id="reviewModalSub"></p>
+    <div style="margin-bottom:20px;">
+      <div style="font-size:12px;color:var(--blue-200);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;font-weight:500;">Calificación</div>
+      <div style="display:flex;gap:8px;" id="starSelector">
+        <span class="review-star" data-v="1" onclick="setReviewStar(1)" style="font-size:28px;cursor:pointer;transition:transform .1s;filter:grayscale(1) opacity(.4);">★</span>
+        <span class="review-star" data-v="2" onclick="setReviewStar(2)" style="font-size:28px;cursor:pointer;transition:transform .1s;filter:grayscale(1) opacity(.4);">★</span>
+        <span class="review-star" data-v="3" onclick="setReviewStar(3)" style="font-size:28px;cursor:pointer;transition:transform .1s;filter:grayscale(1) opacity(.4);">★</span>
+        <span class="review-star" data-v="4" onclick="setReviewStar(4)" style="font-size:28px;cursor:pointer;transition:transform .1s;filter:grayscale(1) opacity(.4);">★</span>
+        <span class="review-star" data-v="5" onclick="setReviewStar(5)" style="font-size:28px;cursor:pointer;transition:transform .1s;filter:grayscale(1) opacity(.4);">★</span>
+      </div>
+    </div>
+    <div style="margin-bottom:20px;">
+      <div style="font-size:12px;color:var(--blue-200);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;font-weight:500;">Comentario (opcional)</div>
+      <textarea id="reviewComment" style="width:100%;min-height:90px;background:rgba(255,255,255,.04);border:var(--border);border-radius:var(--r-md);padding:10px 14px;font-family:var(--font-body);font-size:13px;color:var(--blue-50);resize:vertical;outline:none;box-sizing:border-box;" placeholder="Contá tu experiencia..."></textarea>
+    </div>
+    <div id="reviewAlert" style="font-size:12px;color:#e05d5d;margin-bottom:12px;display:none;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn primary lg" onclick="submitReview()">Guardar reseña</button>
+      <button class="btn" onclick="closeReviewModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="app.js"></script>
+<script>
+  let currentUser, selectedBiz=null, selectedDate=null, selectedSlot=null, currentCat='all', apptFilter='all';
+
+  window.onload = function() {
+    currentUser = requireAuth('user');
+    if (!currentUser) return;
+    document.getElementById('navUser').textContent = currentUser.name + ' ' + currentUser.lastName;
+    document.getElementById('heroName').textContent = currentUser.name;
+    checkPendingNotifs();
+    renderBiz();
+    showSection('buscar');
+  };
+
+  /* ── NOTIFICACIONES DE CANCELACIÓN POR NEGOCIO ── */
+  function checkPendingNotifs() {
+    const pending = DB.getPendingNotifs(currentUser.id);
+    if (!pending.length) return;
+    const n = pending.length;
+    document.getElementById('notifTitle').textContent = `${n} turno${n>1?'s':''} cancelado${n>1?'s':''} por el negocio`;
+    const names = [...new Set(pending.map(a=>a.bizName))].join(', ');
+    document.getElementById('notifSub').textContent = `De: ${names}. Podés reservar un nuevo turno.`;
+    document.getElementById('notifBanner').style.display = 'block';
+  }
+
+  function dismissNotifs() {
+    DB.markAllNotified(currentUser.id);
+    document.getElementById('notifBanner').style.display = 'none';
+  }
+
+  function viewCancelledTurnos() {
+    DB.markAllNotified(currentUser.id);
+    document.getElementById('notifBanner').style.display = 'none';
+    showSection('mis-turnos');
+    // Activate "Cancelados" filter
+    document.querySelectorAll('#apptFilters .cat-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('#apptFilters .cat-btn')[2].classList.add('active');
+    apptFilter = 'cancelled';
+    renderMyAppointments();
+  }
+
+  /* ── SECTIONS ── */
+  function showSection(sec) {
+    document.getElementById('sec-buscar').classList.toggle('hidden', sec !== 'buscar');
+    document.getElementById('sec-mis-turnos').classList.toggle('hidden', sec !== 'mis-turnos');
+    document.getElementById('sec-mis-resenas').classList.toggle('hidden', sec !== 'mis-resenas');
+    document.getElementById('searchSection').classList.toggle('hidden', sec !== 'buscar');
+    if (sec === 'mis-turnos') renderMyAppointments();
+    if (sec === 'buscar') { closePanel(); renderBiz(); }
+    if (sec === 'mis-resenas') renderMisResenas();
+  }
+
+  /* ── NEGOCIOS ── */
+  function renderBiz() {
+    const q = (document.getElementById('searchInput').value || '').toLowerCase();
+    let list = DB.getBusinesses().filter(b => b.active);
+    if (currentCat !== 'all') list = list.filter(b => b.category === currentCat);
+    if (q) list = list.filter(b => b.name.toLowerCase().includes(q) || b.type.toLowerCase().includes(q));
+
+    // Ordenar por promedio de reseñas (mayor primero, sin reseñas al final)
+    list.sort((a, b) => {
+      const rA = parseFloat(DB.getBizAvgRating(a.id)) || 0;
+      const rB = parseFloat(DB.getBizAvgRating(b.id)) || 0;
+      return rB - rA;
+    });
+
+    const grid = document.getElementById('bizGrid');
+    if (!list.length) {
+      grid.innerHTML = '<p style="color:var(--blue-200);grid-column:1/-1;padding:20px 0;">No se encontraron negocios.</p>';
+      return;
+    }
+    grid.innerHTML = list.map(b => {
+      const avg = DB.getBizAvgRating(b.id);
+      return `
+      <div class="biz-card ${selectedBiz && selectedBiz.id===b.id?'selected':''}" onclick="selectBiz(${b.id})">
+        <div class="biz-icon">${b.icon||'🏪'}</div>
+        <div class="biz-name">${b.name}</div>
+        <div class="biz-type">${b.type}${b.address?' · '+b.address:''}</div>
+        ${b.desc ? `<div style="font-size:14px;color:var(--amber);margin-bottom:8px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${b.desc}</div>` : ''}
+        <div class="biz-meta">
+          <span class="badge green">Disponible</span>
+          <span class="badge">${b.startTime}–${b.endTime}</span>
+          ${b.startTime2 && b.endTime2 ? `<span class="badge">${b.startTime2}–${b.endTime2}</span>` : ''}
+          ${avg ? `<span class="badge" style="color:#f5c842;border-color:rgba(245,200,66,.25);background:rgba(245,200,66,.08);">⭐ ${avg}</span>` : ''}
+        </div>
+      </div>
+    `}).join('');
+  }
+
+  function filterCat(btn, cat) {
+    currentCat = cat;
+    document.querySelectorAll('.cats .cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    closePanel(); renderBiz();
+  }
+
+  function applyFilters() { closePanel(); renderBiz(); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.activeElement.id === 'searchInput') applyFilters();
+  });
+
+  /* ── SELECT BIZ ── */
+  function selectBiz(id) {
+    selectedBiz = DB.getBusinesses().find(b => b.id === id);
+    selectedDate = null; selectedSlot = null;
+
+    document.getElementById('panelName').textContent = selectedBiz.name;
+    document.getElementById('panelSub').textContent  = selectedBiz.type + (selectedBiz.address ? '  ·  '+selectedBiz.address : '') + '  ·  '+selectedBiz.startTime+' – '+selectedBiz.endTime + (selectedBiz.startTime2 && selectedBiz.endTime2 ? '  |  '+selectedBiz.startTime2+' – '+selectedBiz.endTime2 : '');
+    // Teléfono de contacto
+    const phoneEl = document.getElementById('panelPhone');
+    if (selectedBiz.phone) {
+      phoneEl.innerHTML = `📞 Cualquier consulta al <strong style="color:var(--blue-50);">${selectedBiz.phone}</strong>`;
+      phoneEl.style.display = 'block';
+    } else {
+      phoneEl.style.display = 'none';
+    }
+    const descEl = document.getElementById('panelDesc');
+    if (selectedBiz.desc) { descEl.textContent = selectedBiz.desc; descEl.style.display = 'block'; }
+    else { descEl.style.display = 'none'; }
+    document.getElementById('successBox').classList.remove('visible');
+    document.getElementById('confirmBar').classList.remove('visible');
+
+    const dates = Dates.getNext(14);
+    const dp = document.getElementById('datePicker');
+    dp.innerHTML = dates.map((d,i) => {
+      const work = selectedBiz.workDays ? selectedBiz.workDays.includes(d.weekday) : true;
+      return `<div class="date-pill ${!work?'disabled':''} ${i===0&&work?'active':''}"
+        ${work ? `onclick="selectDate(this,'${d.key}','${d.dow} ${d.day} de ${d.month}')"` : 'title="Cerrado"'}>
+        <span class="dow">${d.dow}</span>
+        <span class="day">${d.day}</span>
+      </div>`;
+    }).join('');
+
+    const firstWork = dates.find(d => selectedBiz.workDays ? selectedBiz.workDays.includes(d.weekday) : true);
+    if (firstWork) {
+      selectedDate = { key: firstWork.key, label: `${firstWork.dow} ${firstWork.day} de ${firstWork.month}` };
+      renderSlots();
+    }
+
+    const panel = document.getElementById('bookingPanel');
+    panel.classList.add('visible');
+    setTimeout(() => panel.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
+    renderBiz();
+  }
+
+  function selectDate(el, key, label) {
+    document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    selectedDate = { key, label };
+    selectedSlot = null;
+    renderSlots();
+    document.getElementById('confirmBar').classList.remove('visible');
+  }
+
+  function renderSlots() {
+    if (!selectedBiz || !selectedDate) return;
+    let allSlots = DB.generateSlots(selectedBiz.startTime, selectedBiz.endTime, selectedBiz.interval||30);
+    if (selectedBiz.startTime2 && selectedBiz.endTime2) {
+      allSlots = allSlots.concat(DB.generateSlots(selectedBiz.startTime2, selectedBiz.endTime2, selectedBiz.interval||30));
+    }
+
+    // Filter out past slots for today
+    const now = new Date();
+    const todayKey = now.toLocaleDateString('es-AR');
+    if (selectedDate.key === todayKey) {
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      allSlots = allSlots.filter(t => {
+        const [hh, mm] = t.split(':').map(Number);
+        return hh * 60 + mm > nowMinutes;
+      });
+    }
+
+    const taken = allSlots.filter(t => DB.isTaken(selectedBiz.id, selectedDate.key, t));
+    const avail = allSlots.length - taken.length;
+
+    document.getElementById('slotsLabel').textContent = `Horarios disponibles (${avail} libres de ${allSlots.length})`;
+    if (!allSlots.length) {
+      const now2 = new Date();
+      const todayKey2 = now2.toLocaleDateString('es-AR');
+      const msg = selectedDate.key === todayKey2
+        ? 'No quedan turnos disponibles para hoy. Probá con otro día.'
+        : 'Sin horarios configurados.';
+      document.getElementById('slotsGrid').innerHTML = `<p class="no-slots">${msg}</p>`;
+      return;
+    }
+    document.getElementById('slotsGrid').innerHTML = allSlots.map(t => {
+      const isTaken = DB.isTaken(selectedBiz.id, selectedDate.key, t);
+      return `<button class="slot ${selectedSlot===t?'active':''}"
+        onclick="${isTaken ? '' : `pickSlot(this,'${t}')`}"
+        ${isTaken ? 'disabled' : ''} title="${isTaken?'Ocupado':'Disponible'}">
+        ${t}
+      </button>`;
+    }).join('');
+  }
+
+  function pickSlot(el, time) {
+    selectedSlot = time;
+    document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('confirmSlot').textContent = time + ' hs  —  ' + selectedBiz.name;
+    document.getElementById('confirmDate').textContent = selectedDate.label;
+    document.getElementById('confirmBar').classList.add('visible');
+    document.getElementById('successBox').classList.remove('visible');
+    // Mostrar info de seña si aplica
+    const depBox = document.getElementById('depositInfoBox');
+    if (selectedBiz.requireDeposit) {
+      document.getElementById('depositAmtLabel').textContent = '$ ' + Number(selectedBiz.depositAmount).toLocaleString('es-AR');
+      document.getElementById('depositHolderLabel').textContent = selectedBiz.depositHolder;
+      document.getElementById('depositAliasLabel').textContent = selectedBiz.depositAlias;
+      document.getElementById('depositPhoneLabel').textContent = selectedBiz.depositPhone || '–';
+      depBox.style.display = 'block';
+    } else {
+      depBox.style.display = 'none';
+    }
+  }
+
+  function copyAlias() {
+    if (!selectedBiz) return;
+    navigator.clipboard.writeText(selectedBiz.depositAlias).then(() => Toast.show('Alias copiado al portapapeles', 'success'));
+  }
+
+  /* ── RESEÑAS ── */
+  let reviewBizId = null, reviewStars = 0;
+
+  function renderMisResenas() {
+    // Negocios donde el usuario tuvo al menos un turno confirmado
+    const appts = DB.getUserAppointments(currentUser.id).filter(a => a.status === 'confirmed' || a.status === 'cancelled');
+    const bizMap = {};
+    const allBiz = DB.getBusinesses();
+    appts.forEach(a => {
+      if (!bizMap[a.bizId]) {
+        const liveBiz = allBiz.find(b => b.id === a.bizId);
+        bizMap[a.bizId] = {
+          id:   a.bizId,
+          name: liveBiz ? liveBiz.name : a.bizName,
+          icon: liveBiz ? (liveBiz.icon || '🏪') : (a.bizIcon || '🏪'),
+          desc: liveBiz ? (liveBiz.desc || '') : ''
+        };
+      }
+    });
+    const bizList = Object.values(bizMap);
+    const container = document.getElementById('resenasList');
+    if (!bizList.length) {
+      container.innerHTML = `<div class="empty-state"><div class="em-icon">⭐</div><p>Reservá un turno para poder dejar una reseña.</p></div>`;
+      return;
+    }
+    container.innerHTML = bizList.map(b => {
+      const existing = DB.getUserReview(currentUser.id, b.id);
+      const avg = DB.getBizAvgRating(b.id);
+      const starsHtml = [1,2,3,4,5].map(i =>
+        `<span style="color:${i<=(existing?.rating||0)?'#f5c842':'rgba(99,102,184,.25)'};font-size:18px;">★</span>`
+      ).join('');
+      return `<div style="background:var(--glass);border:var(--border);border-radius:var(--r-lg);padding:18px 20px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+        <div style="font-size:28px;">${b.icon}</div>
+        <div style="flex:1;min-width:180px;">
+          <div style="font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--blue-50);margin-bottom:2px;">${b.name}</div>
+          ${b.desc ? `<div style="font-size:11px;color:var(--blue-200);margin-bottom:4px;line-height:1.5;">${b.desc}</div>` : ''}
+          ${avg ? `<div style="font-size:12px;color:var(--blue-200);">Promedio del negocio: ⭐ ${avg}</div>` : ''}
+          ${existing ? `<div style="margin-top:8px;">${starsHtml}<div style="font-size:12px;color:var(--blue-200);margin-top:4px;">${existing.comment || '<em>Sin comentario</em>'}</div></div>` : '<div style="font-size:12px;color:var(--blue-200);margin-top:4px;">Aún no dejaste una reseña</div>'}
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <button class="btn primary" onclick="openReviewModal(${b.id},'${b.name.replace(/'/g,"\\'")}','${b.icon}')">${existing ? 'Editar reseña' : 'Dejar reseña'}</button>
+          ${existing ? `<button class="btn danger" onclick="deleteMyReview(${b.id})">Eliminar</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function openReviewModal(bizId, bizName, bizIcon) {
+    reviewBizId = bizId;
+    const existing = DB.getUserReview(currentUser.id, bizId);
+    reviewStars = existing?.rating || 0;
+    document.getElementById('reviewModalTitle').textContent = bizIcon + ' ' + bizName;
+    document.getElementById('reviewModalSub').textContent = 'Tu opinión sobre este negocio';
+    document.getElementById('reviewComment').value = existing?.comment || '';
+    document.getElementById('reviewAlert').style.display = 'none';
+    updateStarDisplay(reviewStars);
+    document.getElementById('reviewModal').style.display = 'flex';
+  }
+
+  function closeReviewModal() {
+    document.getElementById('reviewModal').style.display = 'none';
+    reviewBizId = null; reviewStars = 0;
+  }
+
+  function setReviewStar(n) {
+    reviewStars = n;
+    updateStarDisplay(n);
+  }
+
+  function updateStarDisplay(n) {
+    document.querySelectorAll('.review-star').forEach(s => {
+      const v = parseInt(s.dataset.v);
+      s.style.filter = v <= n ? 'none' : 'grayscale(1) opacity(.4)';
+      s.style.color = v <= n ? '#f5c842' : '';
+      s.style.transform = v === n ? 'scale(1.2)' : 'scale(1)';
+    });
+  }
+
+  function submitReview() {
+    if (!reviewStars) {
+      const a = document.getElementById('reviewAlert');
+      a.textContent = 'Seleccioná al menos una estrella.';
+      a.style.display = 'block'; return;
+    }
+    const comment = document.getElementById('reviewComment').value.trim();
+    const existing = DB.getUserReview(currentUser.id, reviewBizId);
+    const review = {
+      id: existing?.id || Date.now(),
+      userId: currentUser.id,
+      userName: currentUser.name + ' ' + currentUser.lastName,
+      bizId: reviewBizId,
+      rating: reviewStars,
+      comment,
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    DB.saveReview(review);
+    closeReviewModal();
+    Toast.show('Reseña guardada. ¡Gracias!', 'success');
+    renderMisResenas();
+  }
+
+  let deletingReviewBizId = null;
+  function deleteMyReview(bizId) {
+    const r = DB.getUserReview(currentUser.id, bizId);
+    if (!r) return;
+    deletingReviewBizId = bizId;
+    document.getElementById('deleteReviewModal').style.display = 'flex';
+  }
+  function closeDeleteReviewModal() {
+    deletingReviewBizId = null;
+    document.getElementById('deleteReviewModal').style.display = 'none';
+  }
+  function confirmDeleteReview() {
+    if (!deletingReviewBizId) return;
+    const r = DB.getUserReview(currentUser.id, deletingReviewBizId);
+    if (r) { DB.deleteReview(r.id); Toast.show('Reseña eliminada.', 'info'); }
+    closeDeleteReviewModal();
+    renderMisResenas();
+  }
+
+  function toggleThirdParty(forceValue) {
+    const fields = document.getElementById('thirdPartyFields');
+    const track  = document.getElementById('tpToggleTrack');
+    const thumb  = document.getElementById('tpToggleThumb');
+    const label  = document.getElementById('tpToggleLabel');
+    const active = forceValue !== undefined ? forceValue : fields.style.display === 'none';
+    fields.style.display = active ? 'block' : 'none';
+    track.style.background  = active ? 'var(--blue-600)' : 'rgba(99,102,184,.15)';
+    track.style.borderColor = active ? 'var(--blue-600)' : 'rgba(99,102,184,.2)';
+    thumb.style.transform   = active ? 'translateX(18px)' : 'translateX(0)';
+    thumb.style.background  = active ? '#fff' : 'var(--blue-200)';
+    label.textContent       = active ? 'Reservando para otra persona' : '¿Reservar para otra persona?';
+    if (!active) {
+      document.getElementById('tpName').value = '';
+      document.getElementById('tpDni').value  = '';
+    }
+  }
+
+  function confirmBooking() {
+    if (!selectedBiz || !selectedDate || !selectedSlot) return;
+    if (DB.isTaken(selectedBiz.id, selectedDate.key, selectedSlot)) {
+      Toast.show('Ese horario ya fue tomado. Elegí otro.', 'error');
+      renderSlots(); return;
+    }
+    // Validar tercero
+    const tpActive = document.getElementById('thirdPartyFields').style.display !== 'none';
+    let thirdPartyName = '', thirdPartyDni = '';
+    if (tpActive) {
+      thirdPartyName = document.getElementById('tpName').value.trim();
+      thirdPartyDni  = document.getElementById('tpDni').value.trim();
+      if (!thirdPartyName || !thirdPartyDni) {
+        Toast.show('Completá el nombre y DNI de la otra persona.', 'error'); return;
+      }
+      if (!/^\d{6,8}$/.test(thirdPartyDni)) {
+        Toast.show('El DNI debe tener entre 6 y 8 dígitos.', 'error'); return;
+      }
+    }
+    const appt = {
+      id: Date.now(),
+      userId: currentUser.id,
+      userName: currentUser.name + ' ' + currentUser.lastName,
+      bizId: selectedBiz.id,
+      bizName: selectedBiz.name,
+      bizIcon: selectedBiz.icon || '🏪',
+      date: selectedDate.key,
+      dateLabel: selectedDate.label,
+      time: selectedSlot,
+      status: 'confirmed',
+      createdAt: new Date().toISOString(),
+      requireDeposit:  selectedBiz.requireDeposit  || false,
+      depositAmount:   selectedBiz.depositAmount   || 0,
+      depositHolder:   selectedBiz.depositHolder   || '',
+      depositAlias:    selectedBiz.depositAlias    || '',
+      depositPhone:    selectedBiz.depositPhone    || '',
+      forThirdParty:   tpActive,
+      thirdPartyName:  tpActive ? thirdPartyName : '',
+      thirdPartyDni:   tpActive ? thirdPartyDni  : '',
+    };
+    DB.saveAppointment(appt);
+    const who = tpActive ? ` · Para: ${thirdPartyName}` : '';
+    document.getElementById('successDetail').textContent = selectedBiz.name+' · '+selectedSlot+' hs · '+selectedDate.label+who;
+    document.getElementById('confirmBar').classList.remove('visible');
+    document.getElementById('successBox').classList.add('visible');
+    Toast.show('¡Turno reservado con éxito!', 'success');
+    selectedSlot = null;
+    // Reset tercero
+    if (tpActive) toggleThirdParty(false);
+    renderSlots();
+  }
+
+  function closePanel() {
+    document.getElementById('bookingPanel').classList.remove('visible');
+    selectedBiz = null; renderBiz();
+  }
+
+  /* ── MIS TURNOS ── */
+  function filterAppts(btn, filter) {
+    apptFilter = filter;
+    document.querySelectorAll('#apptFilters .cat-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderMyAppointments();
+  }
+
+  function renderMyAppointments() {
+    const appts = DB.getUserAppointments(currentUser.id);
+    const active    = appts.filter(a => a.status === 'confirmed');
+    const cancelled = appts.filter(a => a.status.startsWith('cancel'));
+    const cancelByBiz = cancelled.filter(a => a.cancelledBy === 'business');
+
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-card"><span class="stat-num">${active.length}</span><span class="stat-lbl">Turnos activos</span></div>
+      <div class="stat-card"><span class="stat-num">${cancelled.length}</span><span class="stat-lbl">Cancelados</span></div>
+      <div class="stat-card"><span class="stat-num">${appts.length}</span><span class="stat-lbl">Total histórico</span></div>
+    `;
+
+    const list = document.getElementById('apptList');
+    if (!appts.length) {
+      list.innerHTML = `<div class="empty-state"><div class="em-icon">📅</div>
+        <p>No tenés turnos aún.</p>
+        <button class="btn primary" onclick="showSection('buscar')" style="margin-top:12px;">Reservar turno</button>
+      </div>`;
+      return;
+    }
+
+    // Filter
+    let filtered = appts;
+    if (apptFilter === 'active')    filtered = active;
+    if (apptFilter === 'cancelled') filtered = cancelled;
+
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty-state"><div class="em-icon">🔍</div><p>No hay turnos en esta categoría.</p></div>`;
+      return;
+    }
+
+    // Sort: active first, cancelled last
+    const sorted = [
+      ...active.sort((a,b)=>b.id-a.id),
+      ...cancelled.sort((a,b)=>b.id-a.id)
+    ].filter(a => filtered.includes(a));
+
+    list.innerHTML = sorted.map(a => {
+      const isCancelledByBiz = a.cancelledBy === 'business';
+      const isCancelled = a.status.startsWith('cancel');
+      const hasReason = a.cancelReason && a.cancelReason.trim();
+
+      return `<div class="appt-card ${isCancelledByBiz && !a.notified ? 'cancelled-by-biz' : ''}">
+        <div class="appt-icon">${a.bizIcon||'🏪'}</div>
+        <div class="appt-info">
+          <div class="appt-biz">${a.bizName}</div>
+          <div class="appt-time">${a.dateLabel||a.date}  ·  ${a.time} hs</div>
+          ${a.forThirdParty ? `<div style="margin-top:4px;font-size:12px;color:var(--blue-200);">👤 Para: <strong style="color:var(--blue-100);">${a.thirdPartyName}</strong> &nbsp;·&nbsp; DNI ${a.thirdPartyDni}</div>` : ''}
+          ${isCancelledByBiz
+            ? `<div class="appt-reason">
+                ⚠️ Cancelado por el negocio${hasReason ? ': '+a.cancelReason : ''}
+               </div>`
+            : ''}
+          ${a.requireDeposit && !isCancelled
+            ? `<div style="margin-top:8px;padding:10px 12px;background:rgba(239,159,39,.07);border:1px solid rgba(239,159,39,.25);border-radius:8px;font-size:12px;color:var(--blue-100);line-height:1.9;">
+                <div style="font-size:11px;font-weight:600;color:#e0993a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">💳 Seña requerida</div>
+                <div>Monto: <strong style="color:var(--blue-50);">$ ${Number(a.depositAmount).toLocaleString('es-AR')}</strong></div>
+                <div>Titular: <strong style="color:var(--blue-50);">${a.depositHolder}</strong></div>
+                <div>Alias/CVU: <strong style="color:var(--blue-50);">${a.depositAlias}</strong></div>
+                <div>Enviar comprobante a: <strong style="color:var(--blue-50);">${a.depositPhone}</strong></div>
+              </div>`
+            : ''}
+        </div>
+        <div class="appt-actions">
+          <span class="badge ${a.status==='confirmed'?'green':isCancelledByBiz?'amber':'red'}">
+            ${a.status==='confirmed' ? 'Confirmado' : isCancelledByBiz ? 'Cancelado por negocio' : 'Cancelado'}
+          </span>
+          ${a.status==='confirmed'
+            ? `<button class="btn-cancel" onclick="cancelAppt(${a.id})">Cancelar</button>`
+            : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  let cancellingApptUserId = null;
+
+  function cancelAppt(id) {
+    const appt = DB.getAppointments().find(a => a.id === id);
+    if (!appt) return;
+    cancellingApptUserId = id;
+    document.getElementById('cancelApptBizName').textContent = (appt.bizIcon||'🏪') + '  ' + appt.bizName;
+    document.getElementById('cancelApptDateTime').textContent = (appt.dateLabel||appt.date) + '  ·  ' + appt.time + ' hs';
+    const modal = document.getElementById('cancelApptModal');
+    modal.style.display = 'flex';
+  }
+
+  function closeCancelApptModal() {
+    document.getElementById('cancelApptModal').style.display = 'none';
+    cancellingApptUserId = null;
+  }
+
+  function confirmCancelApptUser() {
+    if (!cancellingApptUserId) return;
+    DB.cancelByUser(cancellingApptUserId);
+    closeCancelApptModal();
+    Toast.show('Turno cancelado.', 'info');
+    renderMyAppointments();
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SaturnoX – Iniciar sesión</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,184,.18) 0%, transparent 65%),
+                  linear-gradient(160deg, var(--navy) 0%, var(--navy2) 60%, var(--navy3) 100%);
+    }
+
+    /* HERO */
+    .auth-layout {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(99,102,184,.06);
+      pointer-events: none;
+    }
+
+    /* AUTH BOX */
+    .auth-box {
+      width: 100%;
+      max-width: 860px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border: var(--border);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+      background: rgba(10,22,40,.7);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 32px 80px rgba(0,0,0,.5);
+    }
+
+    /* LEFT PANEL */
+    .auth-left {
+      background: linear-gradient(145deg, var(--blue-900) 0%, var(--navy2) 100%);
+      padding: 48px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-left::before {
+      content: '';
+      position: absolute;
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      border: 1px solid rgba(99,102,184,.12);
+      top: -80px; right: -80px;
+    }
+    .auth-left::after {
+      content: '';
+      position: absolute;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      border: 1px solid rgba(99,102,184,.08);
+      bottom: 40px; left: -40px;
+    }
+    .auth-logo {
+      font-family: var(--font-display);
+      font-size: 18px; font-weight: 700;
+      color: var(--blue-200);
+      letter-spacing: -.5px;
+      position: relative; z-index: 1;
+    }
+    .auth-logo span { color: var(--blue-400); }
+    .auth-tagline {
+      position: relative; z-index: 1;
+    }
+    .auth-tagline h1 {
+      font-family: var(--font-display);
+      font-size: 26px; font-weight: 700;
+      color: var(--blue-50);
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .auth-tagline h1 em { color: var(--blue-400); font-style: normal; }
+    .auth-tagline p { font-size: 13px; color: var(--blue-200); line-height: 1.65; }
+    .auth-features {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .feature-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: var(--blue-200);
+    }
+    .feature-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--blue-400);
+      flex-shrink: 0;
+    }
+
+    /* RIGHT PANEL */
+    .auth-right {
+      padding: 48px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .auth-right h2 {
+      font-family: var(--font-display);
+      font-size: 20px; font-weight: 700;
+      color: var(--blue-50);
+      margin-bottom: 4px;
+    }
+    .auth-right .sub {
+      font-size: 13px; color: var(--blue-200);
+      margin-bottom: 28px;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex; gap: 0;
+      background: rgba(255,255,255,.04);
+      border: var(--border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .tab-btn {
+      flex: 1; padding: 10px 12px;
+      background: transparent; border: none;
+      font-family: var(--font-body);
+      font-size: 13px; font-weight: 500;
+      color: var(--blue-200);
+      cursor: pointer; transition: all .2s;
+    }
+    .tab-btn.active {
+      background: var(--blue-600);
+      color: var(--blue-50);
+    }
+
+    /* FORM PANEL */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; animation: slideDown .2s ease; }
+
+    /* ROLE SELECTOR */
+    .role-selector {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; margin-bottom: 16px;
+    }
+    .role-card {
+      padding: 12px 14px;
+      border: var(--border);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      background: transparent;
+      transition: all .2s;
+      text-align: left;
+    }
+    .role-card:hover { background: var(--glass-h); border-color: rgba(99,102,184,.4); }
+    .role-card.selected { background: rgba(57,60,128,.2); border-color: var(--blue-400); }
+    .role-card .role-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+    .role-card .role-name {
+      font-size: 13px; font-weight: 500; color: var(--blue-50); display: block;
+    }
+    .role-card .role-desc { font-size: 11px; color: var(--blue-200); }
+
+    /* GLOBAL ERROR */
+    .alert {
+      padding: 10px 14px;
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .alert.error { background: var(--red-bg); border: 1px solid var(--red-bd); color: var(--red); display: block; }
+    .alert.success { background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green); display: block; }
+
+    /* RESPONSIVE */
+    @media (max-width: 700px) {
+      .auth-box { grid-template-columns: 1fr; }
+      .auth-left { display: none; }
+      .auth-right { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="auth-layout">
+  <div class="ring" style="width:500px;height:500px;top:-200px;right:-150px;"></div>
+  <div class="ring" style="width:300px;height:300px;bottom:-100px;left:-80px;"></div>
+
+  <div class="auth-box">
+    <!-- IZQUIERDA -->
+    <div class="auth-left">
+      <div class="auth-logo"><img src="saturnox.png" alt="SaturnoX" style="height:60px;width:auto;filter:brightness(1.1);align-items: center;" /></div>
+      <div class="auth-tagline">
+        <h1>Reservá tu turno<br><em>en segundos</em></h1>
+        <p>El sistema de turnos online para negocios argentinos. Sin llamadas, sin esperas.</p>
+      </div>
+      <div class="auth-features">
+        <div class="feature-item"><div class="feature-dot"></div>Turnos cada 30 minutos</div>
+        <div class="feature-item"><div class="feature-dot"></div>Gestión para negocios</div>
+        <div class="feature-item"><div class="feature-dot"></div>Confirmación instantánea</div>
+        <div class="feature-item"><div class="feature-dot"></div>Historial de reservas</div>
+      </div>
+    </div>
+
+    <!-- DERECHA -->
+    <div class="auth-right">
+      <h2>Bienvenido</h2>
+      <p class="sub">Ingresá o creá tu cuenta para continuar</p>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('login')">Iniciar sesión</button>
+        <button class="tab-btn" onclick="switchTab('register')">Crear cuenta</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div class="tab-panel active" id="panel-login">
+        <div class="alert" id="loginAlert"></div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" id="loginEmail" placeholder="tu@email.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <div style="position:relative;">
+            <input class="form-input" type="password" id="loginPass" placeholder="••••••••" style="padding-right:44px;" />
+            <button type="button" onclick="togglePassVis('loginPass','eyeLogin')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--blue-200);font-size:16px;padding:4px;line-height:1;" id="eyeLogin">👁️</button>
+          </div>
+        </div>
+        <button class="btn primary lg full" onclick="doLogin()" style="margin-top:8px;">
+          Ingresar
+        </button>
+        <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--blue-200);">
+          ¿No tenés cuenta? <a href="#" onclick="switchTab('register')" style="color:var(--blue-400);text-decoration:none;">Registrarse</a>
+        </p>
+      </div>
+
+      <!-- REGISTRO -->
+      <div class="tab-panel" id="panel-register">
+        <div class="alert" id="registerAlert"></div>
+
+        <div style="margin-bottom:14px;">
+          <div class="form-label" style="margin-bottom:8px;">Tipo de cuenta</div>
+          <div class="role-selector">
+            <div class="role-card selected" id="roleUser" onclick="selectRole('user')">
+              <span class="role-icon">👤</span>
+              <span class="role-name">Usuario</span>
+              <span class="role-desc">Reservar turnos</span>
+            </div>
+            <div class="role-card" id="roleBiz" onclick="selectRole('business')">
+              <span class="role-icon">🏪</span>
+              <span class="role-name">Negocio</span>
+              <span class="role-desc">Gestionar turnos</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nombre</label>
+            <input class="form-input" type="text" id="regName" placeholder="Juan" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Apellido</label>
+            <input class="form-input" type="text" id="regLast" placeholder="García" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" id="regEmail" placeholder="tu@email.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <div style="position:relative;">
+            <input class="form-input" type="password" id="regPass" placeholder="Mínimo 6 caracteres" oninput="checkPassStrength(this.value)" style="padding-right:44px;" />
+            <button type="button" onclick="togglePassVis('regPass','eyeReg')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--blue-200);font-size:16px;padding:4px;line-height:1;" id="eyeReg">👁️</button>
+          </div>
+          <div id="passStrengthWrap" style="margin-top:8px;display:none;">
+            <div style="display:flex;gap:4px;margin-bottom:5px;">
+              <div id="psBar1" style="flex:1;height:4px;border-radius:4px;background:rgba(99,102,184,.15);transition:background .3s;"></div>
+              <div id="psBar2" style="flex:1;height:4px;border-radius:4px;background:rgba(99,102,184,.15);transition:background .3s;"></div>
+              <div id="psBar3" style="flex:1;height:4px;border-radius:4px;background:rgba(99,102,184,.15);transition:background .3s;"></div>
+              <div id="psBar4" style="flex:1;height:4px;border-radius:4px;background:rgba(99,102,184,.15);transition:background .3s;"></div>
+            </div>
+            <span id="passStrengthLabel" style="font-size:11px;font-weight:500;"></span>
+          </div>
+        </div>
+        <button class="btn primary lg full" onclick="doRegister()" style="margin-top:8px;">
+          Crear cuenta
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  // Si ya está logueado, redirigir
+  (function() {
+    const u = DB.getCurrentUser();
+    if (u) window.location.href = u.role === 'business' ? 'business.html' : 'app.html';
+  })();
+
+  let selectedRole = 'user';
+
+  function togglePassVis(inputId, btnId) {
+    const inp = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    const isPass = inp.type === 'password';
+    inp.type = isPass ? 'text' : 'password';
+    btn.textContent = isPass ? '🙈' : '👁️';
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+    document.getElementById('panel-login').classList.toggle('active', tab==='login');
+    document.getElementById('panel-register').classList.toggle('active', tab==='register');
+  }
+
+  function selectRole(role) {
+    selectedRole = role;
+    document.getElementById('roleUser').classList.toggle('selected', role==='user');
+    document.getElementById('roleBiz').classList.toggle('selected', role==='business');
+  }
+
+  function showAlert(id, msg, type='error') {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = `alert ${type}`;
+  }
+
+  function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass  = document.getElementById('loginPass').value;
+    if (!email || !pass) { showAlert('loginAlert','Completá todos los campos.'); return; }
+    const r = DB.loginUser(email, pass);
+    if (!r.ok) { showAlert('loginAlert', r.msg); return; }
+    DB.setCurrentUser(r.user);
+    Toast.show('¡Bienvenido, ' + r.user.name + '!', 'success');
+    setTimeout(() => {
+      window.location.href = r.user.role === 'business' ? 'business.html' : 'app.html';
+    }, 600);
+  }
+
+  function doRegister() {
+    const name  = document.getElementById('regName').value.trim();
+    const last  = document.getElementById('regLast').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass  = document.getElementById('regPass').value;
+    if (!name || !last || !email || !pass) { showAlert('registerAlert','Completá todos los campos.'); return; }
+    if (pass.length < 6) { showAlert('registerAlert','La contraseña debe tener al menos 6 caracteres.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAlert('registerAlert','Ingresá un email válido.'); return; }
+    const r = DB.registerUser({ name, lastName: last, email, password: pass, role: selectedRole });
+    if (!r.ok) { showAlert('registerAlert', r.msg); return; }
+    DB.setCurrentUser(r.user);
+    showAlert('registerAlert','¡Cuenta creada! Redirigiendo...','success');
+    setTimeout(() => {
+      window.location.href = r.user.role === 'business' ? 'business.html' : 'app.html';
+    }, 800);
+  }
+
+  function checkPassStrength(val) {
+    const wrap = document.getElementById('passStrengthWrap');
+    const label = document.getElementById('passStrengthLabel');
+    const bars = [1,2,3,4].map(i => document.getElementById('psBar'+i));
+    if (!val) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    let score = 0;
+    if (val.length >= 6)  score++;
+    if (val.length >= 10) score++;
+    if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score = Math.min(4, score + 1);
+    score = Math.max(1, Math.min(4, score));
+    const cfg = [
+      null,
+      { color:'#e05d5d', text:'Muy débil',  textColor:'#e05d5d' },
+      { color:'#e0993a', text:'Débil',       textColor:'#e0993a' },
+      { color:'#4dbf77', text:'Buena',       textColor:'#4dbf77' },
+      { color:'#2ec08b', text:'Muy fuerte',  textColor:'#2ec08b' },
+    ];
+    bars.forEach((b, i) => { b.style.background = i < score ? cfg[score].color : 'rgba(99,102,184,.15)'; });
+    label.textContent = cfg[score].text;
+    label.style.color = cfg[score].textColor;
+  }
+
+  // Enter para login
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (document.getElementById('panel-login').classList.contains('active')) doLogin();
+      else doRegister();
+    }
+  });
+</script>
+</body>
+</html>
