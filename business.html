@@ -305,7 +305,7 @@
 <nav class="navbar">
   <a href="business.html" class="logo"><img src="saturnox.png" alt="SaturnoX" style="height:50px;width:auto;filter:brightness(1.1);vertical-align:middle;" /></a>
   <div class="nav-right">
-    <span style="font-size:13px;color:var(--blue-200);" id="navUser"> <br></span>
+    <span style="font-size:13px;color:var(--blue-200);" id="navUser"></span>
     <button class="btn danger" onclick="logout()">Salir</button>
   </div>
 </nav>
@@ -867,7 +867,7 @@
   window.onload = function() {
     currentUser = requireAuth('business');
     if (!currentUser) return;
-    document.getElementById('navUser').textContent = currentUser.name + ' ' + currentUser.lastName;
+    document.getElementById('navUser').innerHTML = currentUser.name + '<br>' + currentUser.lastName;
     buildIconGrid();
     buildDaysRow();
     loadMyBiz();
