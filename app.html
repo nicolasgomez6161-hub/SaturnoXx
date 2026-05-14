@@ -142,12 +142,90 @@
     .stat-num { font-family:var(--font-display);font-size:26px;font-weight:700;color:var(--blue-400);display:block; }
     .stat-lbl { font-size:11px;color:var(--blue-200);text-transform:uppercase;letter-spacing:1px; }
 
-    @media (max-width:640px) {
-      .hero,.search-section,.main { padding-left:16px;padding-right:16px; }
-      .notif-banner { margin: 0 16px; }
-      .biz-grid { grid-template-columns:1fr 1fr; }
-      .booking-panel { padding:20px; }
-      .confirm-bar { flex-direction:column;align-items:stretch; }
+    /* HAMBURGER / MOBILE MENU */
+    .hamburger-btn {
+      display: none;
+      flex-direction: column; justify-content: center; align-items: center;
+      gap: 5px; width: 38px; height: 38px;
+      background: rgba(99,102,184,.1); border: 1px solid rgba(99,102,184,.2);
+      border-radius: var(--r-sm); cursor: pointer;
+    }
+    .hamburger-btn span {
+      display: block; width: 18px; height: 2px;
+      background: var(--blue-200); border-radius: 2px; transition: all .2s;
+    }
+    .mobile-menu {
+      position: fixed; top: 60px; right: 12px; z-index: 300;
+      background: var(--navy2); border: var(--border); border-radius: var(--r-lg);
+      padding: 8px; min-width: 200px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.5);
+      animation: slideDown .2s ease;
+    }
+    .mobile-menu.hidden { display: none; }
+    .mobile-menu-item {
+      display: block; width: 100%; text-align: left;
+      padding: 11px 16px; border-radius: var(--r-sm);
+      background: transparent; border: none;
+      font-family: var(--font-body); font-size: 14px; font-weight: 500;
+      color: var(--blue-100); cursor: pointer; transition: background .18s;
+    }
+    .mobile-menu-item:hover { background: rgba(99,102,184,.12); }
+    .mobile-menu-item.danger-item { color: var(--red); }
+    .mobile-menu-item.danger-item:hover { background: var(--red-bg); }
+
+    @media (max-width: 640px) {
+      /* NAV */
+      .nav-desktop-btn { display: none !important; }
+      .nav-username { display: none !important; }
+      .hamburger-btn { display: flex; }
+
+      /* LAYOUT SPACING */
+      .hero { padding: 28px 16px 20px; }
+      .search-section { padding: 14px 16px; }
+      .main { padding: 20px 16px; }
+      .notif-banner { margin: 0 16px; gap: 10px; padding: 12px 14px; }
+      .notif-banner .nb-btn { padding: 6px 10px; font-size: 11px; }
+
+      /* HERO */
+      .hero h1 { font-size: 22px; }
+      .hero p { font-size: 13px; }
+      .hero-tag { font-size: 9px; }
+
+      /* SEARCH */
+      .search-inner { flex-direction: column; gap: 10px; }
+      .search-wrap { min-width: 0; }
+      .cats { gap: 5px; }
+      .cat-btn { font-size: 11px; padding: 5px 10px; }
+
+      /* BIZ GRID */
+      .biz-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .biz-card { padding: 14px; }
+      .biz-name { font-size: 13px; }
+      .biz-type { font-size: 10px; }
+
+      /* BOOKING PANEL */
+      .booking-panel { padding: 16px; border-radius: var(--r-lg); }
+      .panel-header { flex-direction: column; gap: 10px; }
+      .panel-header > div:last-child { align-self: flex-end; margin-top: -8px; }
+      .panel-biz-name { font-size: 16px; }
+      .slots-grid { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 6px; }
+
+      /* CONFIRM BAR */
+      .confirm-bar { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
+      .btn-confirm { width: 100%; text-align: center; padding: 14px; font-size: 15px; }
+      .form-row { grid-template-columns: 1fr; }
+
+      /* APPT CARDS */
+      .appt-card { flex-wrap: wrap; gap: 10px; padding: 14px; }
+      .appt-actions { width: 100%; justify-content: flex-end; }
+      .stats-row { gap: 8px; }
+      .stat-card { padding: 14px; min-width: 90px; }
+      .stat-num { font-size: 22px; }
+      .section-hdr { flex-wrap: wrap; gap: 10px; }
+    }
+    @media (max-width: 380px) {
+      .biz-grid { grid-template-columns: 1fr; }
+      .main { padding: 16px 12px; }
     }
   </style>
 </head>
@@ -156,13 +234,25 @@
 <nav class="navbar">
   <a href="app.html" class="logo"><img src="saturnox.png" alt="SaturnoX" style="height:40px;width:auto;filter:brightness(1.1);vertical-align:middle;" /></a>
   <div class="nav-right">
-    <span style="font-size:13px;color:var(--blue-200);" id="navUser"></span>
-    <button class="btn" onclick="showSection('mis-turnos')">Mis turnos</button>
-    <button class="btn" onclick="showSection('buscar')">Buscar negocio</button>
-    <button class="btn" onclick="showSection('mis-resenas')">Mis reseñas</button>
-    <button class="btn danger" onclick="logout()">Salir</button>
+    <span style="font-size:13px;color:var(--blue-200);" id="navUser" class="nav-username"></span>
+    <button class="btn nav-desktop-btn" onclick="showSection('mis-turnos')">Mis turnos</button>
+    <button class="btn nav-desktop-btn" onclick="showSection('buscar')">Buscar negocio</button>
+    <button class="btn nav-desktop-btn" onclick="showSection('mis-resenas')">Mis reseñas</button>
+    <button class="btn danger nav-desktop-btn" onclick="logout()">Salir</button>
+    <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleMobileMenu()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+
+<!-- MOBILE DROPDOWN MENU -->
+<div id="mobileMenu" class="mobile-menu hidden">
+  <button class="mobile-menu-item" onclick="showSection('buscar');toggleMobileMenu()">🔍 Buscar negocio</button>
+  <button class="mobile-menu-item" onclick="showSection('mis-turnos');toggleMobileMenu()">📅 Mis turnos</button>
+  <button class="mobile-menu-item" onclick="showSection('mis-resenas');toggleMobileMenu()">⭐ Mis reseñas</button>
+  <div style="height:1px;background:rgba(99,102,184,.15);margin:4px 0;"></div>
+  <button class="mobile-menu-item danger-item" onclick="logout()">🚪 Cerrar sesión</button>
+</div>
 
 <!-- NOTIFICATION BANNER (cancellation from business) -->
 <div id="notifBanner" style="max-width:1100px;margin:20px auto 0;padding:0 40px;display:none;">
@@ -378,6 +468,18 @@
 <script src="app.js"></script>
 <script>
   let currentUser, selectedBiz=null, selectedDate=null, selectedSlot=null, currentCat='all', apptFilter='all';
+
+  function toggleMobileMenu() {
+    document.getElementById('mobileMenu').classList.toggle('hidden');
+  }
+  // Close menu when clicking outside
+  document.addEventListener('click', function(e) {
+    const menu = document.getElementById('mobileMenu');
+    const btn = document.getElementById('hamburgerBtn');
+    if (!menu.classList.contains('hidden') && !menu.contains(e.target) && !btn.contains(e.target)) {
+      menu.classList.add('hidden');
+    }
+  });
 
   window.onload = function() {
     currentUser = requireAuth('user');
