@@ -95,3 +95,14 @@ body{font-family:var(--font-body);background:var(--navy);color:var(--blue-50);mi
   .navbar{padding:12px 16px}
   .form-row{grid-template-columns:1fr}
 }
+
+/* MOBILE TOUCH & USABILITY */
+@media(max-width:700px){
+  .btn { min-height: 42px; }
+  .form-input, .form-select, .form-textarea { font-size: 16px !important; } /* prevent iOS auto-zoom */
+  .toast-container { bottom: 80px; right: 12px; left: 12px; }
+  .toast { min-width: 0; max-width: 100%; width: 100%; }
+  .modal-overlay { padding: 16px; align-items: flex-end; }
+  .modal-box { border-radius: var(--r-xl) var(--r-xl) var(--r-md) var(--r-md); }
+  .badge { font-size: 9px; padding: 2px 7px; }
+}
