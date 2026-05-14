@@ -185,9 +185,24 @@
 
     /* RESPONSIVE */
     @media (max-width: 700px) {
-      .auth-box { grid-template-columns: 1fr; }
+      .auth-layout { padding: 0; align-items: stretch; }
+      .auth-box {
+        grid-template-columns: 1fr;
+        border-radius: 0;
+        border-left: none; border-right: none;
+        min-height: 100vh;
+        box-shadow: none;
+      }
       .auth-left { display: none; }
-      .auth-right { padding: 32px 24px; }
+      .auth-right { padding: 40px 24px 32px; justify-content: flex-start; }
+      .auth-right h2 { font-size: 24px; }
+      .role-selector { grid-template-columns: 1fr 1fr; }
+      .role-card { padding: 10px; }
+      .form-row { grid-template-columns: 1fr; }
+      .mobile-logo-wrap { display: block !important; }
+    }
+    @media (max-width: 400px) {
+      .auth-right { padding: 32px 16px 24px; }
     }
   </style>
 </head>
@@ -215,6 +230,10 @@
 
     <!-- DERECHA -->
     <div class="auth-right">
+      <div style="display:none;margin-bottom:28px;" class="mobile-logo-wrap">
+        <img src="saturnox.png" alt="SaturnoX" style="height:44px;width:auto;filter:brightness(1.1);" />
+        <p style="font-size:12px;color:var(--blue-200);margin-top:8px;">El sistema de turnos online para negocios argentinos.</p>
+      </div>
       <h2>Bienvenido</h2>
       <p class="sub">Ingresá o creá tu cuenta para continuar</p>
 
