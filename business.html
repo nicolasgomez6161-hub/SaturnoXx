@@ -200,9 +200,101 @@
     /* CANCELLED BADGE */
     .badge.cancelled { background:rgba(226,75,74,.12);color:var(--red);border-color:var(--red-bd); }
 
-    @media (max-width:700px) {
-      .sidebar { display:none; }
-      .content { padding:20px 16px; }
+    /* INTERVAL QUICK BUTTONS */
+    .iv-quick {
+      font-family:var(--font-body);font-size:11px;font-weight:500;
+      padding:5px 11px;border-radius:14px;
+      border:1px solid rgba(99,102,184,.25);background:transparent;
+      color:var(--blue-200);cursor:pointer;transition:all .18s;
+    }
+    .iv-quick:hover { background:rgba(99,102,184,.1);border-color:rgba(99,102,184,.45);color:var(--blue-50); }
+    .iv-quick.active { background:rgba(57,60,128,.25);border-color:var(--blue-400);color:var(--blue-50); }
+
+    /* BOTTOM NAV FOR MOBILE */
+    .bottom-nav {
+      display: none;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
+      background: rgba(8,18,36,.97); border-top: var(--border);
+      backdrop-filter: blur(14px);
+      padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    }
+    .bottom-nav-inner { display: flex; justify-content: space-around; align-items: center; }
+    .bn-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: none; border: none; cursor: pointer;
+      font-family: var(--font-body); font-size: 10px; font-weight: 500;
+      color: var(--blue-200); padding: 4px 10px; border-radius: var(--r-sm);
+      transition: color .2s; min-width: 52px;
+    }
+    .bn-btn .bn-icon { font-size: 20px; }
+    .bn-btn.active { color: var(--blue-50); }
+    .bn-notif {
+      position: relative;
+    }
+    .bn-notif::after {
+      content: ''; position: absolute; top: -2px; right: -4px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--red); display: none;
+    }
+    .bn-notif.has-notif::after { display: block; }
+
+    @media (max-width: 700px) {
+      /* Hide desktop sidebar, show bottom nav */
+      .sidebar { display: none !important; }
+      .bottom-nav { display: block; }
+      .layout { display: block; }
+      .content { padding: 20px 16px 80px; }
+
+      /* NAV BAR */
+      .navbar { padding: 10px 16px; }
+
+      /* SETUP CARD */
+      .setup-card { padding: 20px 16px; }
+      .setup-card h3 { font-size: 16px; }
+      .form-row { grid-template-columns: 1fr; }
+
+      /* STATS */
+      .stats-row { gap: 8px; }
+      .stat-card { padding: 14px; min-width: 90px; }
+      .stat-num { font-size: 22px; }
+
+      /* AGENDA */
+      .page-hdr-row { flex-direction: column; align-items: flex-start; }
+      .slot-row { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+      .slot-time { width: auto; }
+      .slot-actions { width: 100%; justify-content: flex-end; }
+      .btn-cancel-appt { font-size: 11px; padding: 5px 10px; }
+
+      /* INTERVAL PICKER */
+      #intervalQuickBtns { gap: 5px; }
+      .iv-quick { font-size: 10px; padding: 5px 9px; }
+
+      /* EMOJI PANEL */
+      .emoji-panel { padding: 12px; }
+      .emoji-item { width: 34px; height: 34px; font-size: 18px; }
+
+      /* ICON/DAYS */
+      .days-row { gap: 6px; }
+      .day-toggle { padding: 6px 10px; font-size: 11px; }
+
+      /* MODAL */
+      .modal-box { padding: 24px 18px; }
+      .modal-footer { flex-direction: column; }
+      .modal-footer .btn { width: 100%; justify-content: center; }
+
+      /* PAGE HEADERS */
+      .page-hdr { margin-bottom: 20px; }
+      .page-hdr h2 { font-size: 20px; }
+
+      /* CLIENTS */
+      .client-row { flex-wrap: wrap; gap: 10px; }
+
+      /* BIZ NOTIF BANNER */
+      #bizNotifBanner { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
+    @media (max-width: 400px) {
+      .content { padding: 16px 12px 80px; }
+      .setup-card { padding: 16px 12px; }
     }
 
     @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.5} }
@@ -421,22 +513,31 @@
 
         <div class="form-group" style="margin-top:16px;">
           <label class="form-label">Intervalo entre turnos</label>
-          <select class="form-select" id="bizInterval" onchange="updateSlotPreview()">
-            <option value="15">15 minutos</option>
-            <option value="20">20 minutos</option>
-            <option value="30" selected>30 minutos</option>
-            <option value="45">45 minutos</option>
-            <option value="60">1 hora</option>
-            <option value="75">1 hora 15 min</option>
-            <option value="90">1 hora 30 min</option>
-            <option value="105">1 hora 45 min</option>
-            <option value="120">2 horas</option>
-            <option value="150">2 horas 30 min</option>
-            <option value="180">3 horas</option>
-            <option value="240">4 horas</option>
-            <option value="300">5 horas</option>
-            <option value="360">6 horas</option>
-          </select>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="position:relative;">
+                <input class="form-input" type="number" id="bizIntervalHours" min="0" max="23" value="0"
+                  style="width:80px;text-align:center;padding-right:8px;"
+                  oninput="clampIntervalField(this,0,23);updateSlotPreview()" />
+                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--blue-200);pointer-events:none;">h</span>
+              </div>
+              <div style="position:relative;">
+                <input class="form-input" type="number" id="bizIntervalMins" min="0" max="59" value="30"
+                  style="width:80px;text-align:center;padding-right:8px;"
+                  oninput="clampIntervalField(this,0,59);updateSlotPreview()" />
+                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--blue-200);pointer-events:none;">min</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;" id="intervalQuickBtns">
+              <button type="button" class="iv-quick" onclick="setIntervalQuick(0,15)">15 min</button>
+              <button type="button" class="iv-quick" onclick="setIntervalQuick(0,30)">30 min</button>
+              <button type="button" class="iv-quick" onclick="setIntervalQuick(0,45)">45 min</button>
+              <button type="button" class="iv-quick" onclick="setIntervalQuick(1,0)">1 h</button>
+              <button type="button" class="iv-quick" onclick="setIntervalQuick(1,30)">1 h 30</button>
+              <button type="button" class="iv-quick" onclick="setIntervalQuick(2,0)">2 h</button>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--blue-200);" id="intervalDisplay">Intervalo: 30 minutos</div>
         </div>
 
         <div class="form-group">
@@ -517,6 +618,27 @@
     </div>
   </div>
 </div>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bottom-nav-inner">
+    <button class="bn-btn active" id="bn-dashboard" onclick="showPage('dashboard');updateBottomNav('dashboard')">
+      <span class="bn-icon">📊</span>Panel
+    </button>
+    <button class="bn-btn" id="bn-agenda" onclick="showPage('agenda');updateBottomNav('agenda')">
+      <span class="bn-icon">📅</span>Agenda
+    </button>
+    <button class="bn-btn" id="bn-clientes" onclick="showPage('clientes');updateBottomNav('clientes')">
+      <span class="bn-icon">👥</span>Clientes
+    </button>
+    <button class="bn-btn" id="bn-resenas" onclick="showPage('resenas');updateBottomNav('resenas')">
+      <span class="bn-icon">⭐</span>Reseñas
+    </button>
+    <button class="bn-btn" id="bn-negocio" onclick="showPage('negocio');updateBottomNav('negocio')">
+      <span class="bn-icon bn-notif" id="bnNegocioIcon">🏪</span>Config
+    </button>
+  </div>
+</nav>
 
 <!-- MODAL CANCELAR TURNO (negocio) -->
 <div class="modal-overlay hidden" id="cancelModal">
@@ -771,12 +893,22 @@
     document.getElementById('bizNotifBanner').style.display = 'none';
   }
 
+  function updateBottomNav(page) {
+    ['dashboard','agenda','clientes','resenas','negocio'].forEach(p => {
+      const b = document.getElementById('bn-'+p);
+      if (b) b.classList.toggle('active', p === page);
+    });
+    // scroll to top on mobile when switching pages
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
   function showPage(page) {
     ['dashboard','agenda','clientes','negocio','resenas'].forEach(p => {
       document.getElementById('page-'+p).classList.toggle('hidden', p !== page);
       const sb = document.getElementById('sb-'+p);
       if (sb) sb.classList.toggle('active', p === page);
     });
+    updateBottomNav(page);
     if (page === 'dashboard') { renderDashboard(); checkBizNotifs(); }
     if (page === 'agenda')    renderAgenda();
     if (page === 'clientes')  renderClients();
@@ -858,7 +990,10 @@ function buildIconGrid() {
     document.getElementById('bizDesc').value     = b.desc     || '';
     document.getElementById('bizStart').value    = b.startTime|| '09:00';
     document.getElementById('bizEnd').value      = b.endTime  || '18:00';
-    document.getElementById('bizInterval').value = String(b.interval || 30);
+    const iv = b.interval || 30;
+    document.getElementById('bizIntervalHours').value = Math.floor(iv / 60);
+    document.getElementById('bizIntervalMins').value  = iv % 60;
+    highlightQuickBtn(Math.floor(iv/60), iv%60);
     // Bloque 2
     if (b.startTime2 && b.endTime2) {
       toggleBlock2(true);
@@ -893,7 +1028,7 @@ function buildIconGrid() {
     const desc  = document.getElementById('bizDesc').value.trim();
     const start = document.getElementById('bizStart').value;
     const end   = document.getElementById('bizEnd').value;
-    const iv    = parseInt(document.getElementById('bizInterval').value);
+    const iv    = getIntervalMinutes();
     const icon  = document.getElementById('bizIcon').value;
     const requireDeposit = depositEnabled;
     const depositAlias  = document.getElementById('bizDepositAlias').value.trim();
@@ -906,6 +1041,7 @@ function buildIconGrid() {
     const end2   = block2Active ? document.getElementById('bizEnd2').value   : '';
 
     if (!name || !type || !start || !end) { showBizAlert('Completá los campos obligatorios (*)','error'); return; }
+    if (iv <= 0) { showBizAlert('El intervalo entre turnos debe ser mayor a 0.','error'); return; }
     if (start >= end) { showBizAlert('El horario de cierre debe ser posterior a la apertura.','error'); return; }
     if (block2Active) {
       if (!start2 || !end2) { showBizAlert('Completá las horas del segundo bloque o desactivalo.','error'); return; }
@@ -1026,11 +1162,52 @@ function buildIconGrid() {
   }
 
   /* ── SLOT PREVIEW ── */
+  function getIntervalMinutes() {
+    const h = parseInt(document.getElementById('bizIntervalHours').value) || 0;
+    const m = parseInt(document.getElementById('bizIntervalMins').value)  || 0;
+    return h * 60 + m;
+  }
+
+  function clampIntervalField(el, min, max) {
+    let v = parseInt(el.value);
+    if (isNaN(v)) v = min;
+    if (v < min)  v = min;
+    if (v > max)  v = max;
+    el.value = v;
+    highlightQuickBtn(
+      parseInt(document.getElementById('bizIntervalHours').value)||0,
+      parseInt(document.getElementById('bizIntervalMins').value)||0
+    );
+  }
+
+  function setIntervalQuick(h, m) {
+    document.getElementById('bizIntervalHours').value = h;
+    document.getElementById('bizIntervalMins').value  = m;
+    highlightQuickBtn(h, m);
+    updateSlotPreview();
+  }
+
+  function highlightQuickBtn(h, m) {
+    const map = {'0:15':0,'0:30':1,'0:45':2,'1:0':3,'1:30':4,'2:0':5};
+    const key = `${h}:${m}`;
+    document.querySelectorAll('.iv-quick').forEach((btn, i) => {
+      btn.classList.toggle('active', map[key] === i);
+    });
+  }
+
   function updateSlotPreview() {
     const start = document.getElementById('bizStart').value;
     const end   = document.getElementById('bizEnd').value;
-    const iv    = parseInt(document.getElementById('bizInterval').value) || 30;
-    if (!start || !end || start >= end) {
+    const iv    = getIntervalMinutes();
+
+    // Update interval display label
+    const ivLabel = iv === 0 ? '–'
+      : iv < 60  ? `${iv} minuto${iv!==1?'s':''}`
+      : iv % 60 === 0 ? `${iv/60} hora${iv/60!==1?'s':''}`
+      : `${Math.floor(iv/60)} h ${iv%60} min`;
+    document.getElementById('intervalDisplay').textContent = iv > 0 ? `Intervalo: ${ivLabel}` : 'Ingresá un intervalo mayor a 0';
+
+    if (!start || !end || start >= end || iv <= 0) {
       document.getElementById('previewInfo').textContent = '';
       document.getElementById('slotPreview').innerHTML = '';
       return;
@@ -1050,7 +1227,6 @@ function buildIconGrid() {
     const daysStr = selectedWorkDays.length
       ? selectedWorkDays.map(d => ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d]).join(', ')
       : 'Ningún día seleccionado';
-    const ivLabel = iv < 60 ? `${iv} min` : iv % 60 === 0 ? `${iv/60} h` : `${Math.floor(iv/60)} h ${iv%60} min`;
     document.getElementById('previewInfo').textContent = `${slots.length} turnos · cada ${ivLabel} · Días: ${daysStr}`;
     document.getElementById('slotPreview').innerHTML = slots.map(s =>
       `<span style="padding:4px 9px;border:1px solid rgba(99,102,184,.2);border-radius:6px;font-size:11px;color:var(--blue-200);">${s}</span>`
