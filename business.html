@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     body { background: linear-gradient(160deg, var(--navy) 0%, var(--navy2) 60%, var(--navy3) 100%); }
+    [data-theme="light"] body { background: linear-gradient(160deg, #EEEEF8 0%, #E4E5F4 60%, #D8DAF0 100%); }
     .layout { display:flex; min-height:calc(100vh - 60px); }
     .sidebar {
       width:220px; flex-shrink:0;
@@ -245,8 +246,15 @@
       .layout { display: block; }
       .content { padding: 20px 16px 80px; }
 
-      /* NAV BAR */
-      .navbar { padding: 10px 16px; }
+      /* NAV BAR — compacta */
+      .navbar { padding: 10px 14px; }
+      .logo img { height: 32px !important; }
+
+      /* Ocultar "Salir" texto, mostrar ícono en mobile */
+      .btn-exit-label { display: none; }
+      .btn-exit-icon { display: inline !important; font-size: 16px; }
+      .btn.danger { padding: 6px 10px; min-height: 36px; border-radius: 50%; width: 36px; height: 36px; justify-content: center; }
+      #navUser { display: none; }
 
       /* SETUP CARD */
       .setup-card { padding: 20px 16px; }
@@ -305,8 +313,9 @@
 <nav class="navbar">
   <a href="business.html" class="logo"><img src="saturnox.png" alt="SaturnoX" style="height:50px;width:auto;filter:brightness(1.1);vertical-align:middle;" /></a>
   <div class="nav-right">
-    <span style="font-size:13px;color:var(--blue-200);" id="navUser"></span>
-    <button class="btn danger" onclick="logout()">Salir</button>
+    <button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Cambiar tema"><span id="themeIcon">🌙</span><span class="theme-label"> Tema</span></button>
+    <span style="font-size:13px;color:var(--blue-200);" id="navUser" class="nav-desktop-btn"></span>
+    <button class="btn danger" onclick="logout()"><span class="btn-exit-label">Salir</span><span class="btn-exit-icon" style="display:none;">🚪</span></button>
   </div>
 </nav>
 
@@ -397,6 +406,18 @@
       <div class="page-hdr">
         <h2>Mi negocio</h2>
         <p>Configurá los datos, horarios y días de atención</p>
+      </div>
+
+      <!-- BANNER INTERVALO PENDIENTE -->
+      <div id="pendingIntervalBanner" style="display:none;background:linear-gradient(135deg,rgba(239,202,39,.10),rgba(239,159,39,.06));border:1px solid rgba(239,202,39,.35);border-radius:var(--r-lg);padding:14px 18px;margin-bottom:20px;animation:slideDown .3s ease;">
+        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div style="font-size:24px;flex-shrink:0;">⏳</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:var(--amber);margin-bottom:3px;">Cambio de intervalo pendiente</div>
+            <div style="font-size:12px;color:rgba(239,202,39,.8);line-height:1.5;" id="pendingIntervalMsg"></div>
+          </div>
+          <button onclick="cancelPendingInterval()" style="background:rgba(239,159,39,.15);border:1px solid rgba(239,159,39,.3);border-radius:var(--r-sm);padding:5px 12px;font-size:11px;font-weight:600;color:var(--amber);cursor:pointer;white-space:nowrap;flex-shrink:0;" onmouseover="this.style.background='rgba(239,159,39,.28)'" onmouseout="this.style.background='rgba(239,159,39,.15)'">Cancelar cambio</button>
+        </div>
       </div>
 
       <div class="setup-card">
@@ -864,6 +885,25 @@
   let agendaDate = null;
   let cancellingApptId = null;
 
+  // ── TEMA ──
+  function initTheme() {
+    const t = localStorage.getItem('sx_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    updateThemeBtn(t);
+  }
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('sx_theme', next);
+    updateThemeBtn(next);
+  }
+  function updateThemeBtn(t) {
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.textContent = t === 'dark' ? '☀️' : '🌙';
+  }
+  initTheme();
+
   window.onload = function() {
     currentUser = requireAuth('business');
     if (!currentUser) return;
@@ -909,7 +949,7 @@
       if (sb) sb.classList.toggle('active', p === page);
     });
     updateBottomNav(page);
-    if (page === 'dashboard') { renderDashboard(); checkBizNotifs(); }
+    if (page === 'dashboard') { renderDashboard(); checkBizNotifs(); checkAndApplyPendingInterval(); }
     if (page === 'agenda')    renderAgenda();
     if (page === 'clientes')  renderClients();
     if (page === 'negocio')   renderNegocioForm();
@@ -1081,11 +1121,19 @@ function buildIconGrid() {
       );
     }
 
+    // Detectar si sólo cambió el intervalo estando ya en un negocio con turnos activos
+    const intervalChanged = !isNew && (myBiz.interval || 30) !== iv;
+    const activeAppts = !isNew ? DB.getActiveAppts(myBiz.id) : [];
+    const hasFutureAppts = activeAppts.length > 0;
+
+    // El intervalo a usar en el guardado: si cambia y hay turnos, mantener el anterior
+    const intervalToSave = (intervalChanged && hasFutureAppts) ? (myBiz.interval || 30) : iv;
+
     const biz = {
       id:        myBiz ? myBiz.id : Date.now(),
       ownerId:   currentUser.id,
       name, type, category: cat, address: addr, phone, desc, icon,
-      startTime: start, endTime: end, interval: iv,
+      startTime: start, endTime: end, interval: intervalToSave,
       startTime2: block2Active ? start2 : '', endTime2: block2Active ? end2 : '',
       workDays:  [...selectedWorkDays].sort(), active: true,
       requireDeposit, depositAlias, depositHolder, depositAmount, depositPhone
@@ -1097,7 +1145,29 @@ function buildIconGrid() {
 
     if (isNew) {
       showBizAlert('¡Negocio creado con éxito!', 'success');
+    } else if (intervalChanged && hasFutureAppts) {
+      // Guardar el cambio como pendiente
+      DB.setPendingInterval(myBiz.id, iv);
+      const firstFreeDay = DB.getFirstFreeDayForInterval(myBiz.id);
+      const freeMsg = firstFreeDay
+        ? `Se aplicará el ${firstFreeDay}, que es el primer día sin turnos agendados.`
+        : 'Se aplicará cuando no queden turnos activos.';
+      showBizAlert(`El intervalo cambiará a ${iv} min cuando no haya turnos agendados. ${freeMsg}`, 'success');
+      renderPendingIntervalBanner();
+      // Restaurar el input al valor real actual
+      const currentIv = myBiz.interval || 30;
+      document.getElementById('bizIntervalHours').value = Math.floor(currentIv / 60);
+      document.getElementById('bizIntervalMins').value  = currentIv % 60;
+      highlightQuickBtn(Math.floor(currentIv/60), currentIv%60);
+      updateSlotPreview();
     } else if (hasChanges) {
+      // Limpiar pendiente si el usuario guardó exactamente el mismo intervalo que había pendiente
+      const pending = DB.getPendingInterval(myBiz.id);
+      if (pending && pending.newInterval === iv) {
+        // mantener pendiente
+      } else if (!intervalChanged) {
+        // si no cambió el intervalo, no tocar el pendiente
+      }
       showBizAlert('¡Cambios guardados con éxito!', 'success');
     }
     // Si no es nuevo y no hubo cambios, no se muestra ningún mensaje
@@ -1357,8 +1427,8 @@ function buildIconGrid() {
         <span class="slot-time">${t}</span>
         <div class="slot-info">
           ${appt
-            ? `<div class="slot-user ${isCancelled ? 'opacity-40' : ''}" style="${isCancelled?'opacity:.5;text-decoration:line-through;':''}">${u ? u.name+' '+u.lastName : 'Usuario'}${appt.forThirdParty ? ` <span style="font-size:11px;font-weight:400;color:var(--blue-200);">→ ${appt.thirdPartyName} · DNI ${appt.thirdPartyDni}</span>` : ''}</div>
-               <div class="slot-sub">${u ? u.email : ''}</div>`
+            ? `<div class="slot-user ${isCancelled ? 'opacity-40' : ''}" style="${isCancelled?'opacity:.5;text-decoration:line-through;':''}">${appt.isGuestBooking ? '👤 '+appt.userName : (u ? u.name+' '+u.lastName : 'Usuario')}${appt.forThirdParty ? ` <span style="font-size:11px;font-weight:400;color:var(--blue-200);">→ ${appt.thirdPartyName} · DNI ${appt.thirdPartyDni}</span>` : ''}</div>
+               <div class="slot-sub">${appt.isGuestBooking ? (appt.guestPhone ? '📞 '+appt.guestPhone : 'Invitado sin cuenta') : (u ? u.email : '')}</div>`
             : `<div class="slot-free">Disponible</div>`}
         </div>
         <div class="slot-actions">
@@ -1440,6 +1510,16 @@ function buildIconGrid() {
   /* ── NEGOCIO FORM ── */
   function renderNegocioForm() {
     myBiz = DB.getMyBusiness(currentUser.id);
+
+    // Intentar aplicar el intervalo pendiente si ya no hay turnos activos
+    if (myBiz) {
+      const applied = DB.tryApplyPendingInterval(myBiz.id);
+      if (applied) {
+        myBiz = DB.getMyBusiness(currentUser.id); // recargar con el intervalo actualizado
+        Toast.show('✅ El intervalo pendiente fue aplicado: no hay más turnos activos.', 'success', 5000);
+      }
+    }
+
     const btnSave = document.querySelector('[onclick="saveBiz()"]');
     if (myBiz) {
       fillForm(myBiz);
@@ -1449,6 +1529,46 @@ function buildIconGrid() {
       document.getElementById('btnDelete').style.display = 'none';
       if (btnSave) btnSave.textContent = 'Guardar negocio';
       updateSlotPreview();
+    }
+    renderPendingIntervalBanner();
+  }
+
+  function renderPendingIntervalBanner() {
+    const banner = document.getElementById('pendingIntervalBanner');
+    if (!banner || !myBiz) { if (banner) banner.style.display = 'none'; return; }
+    const pending = DB.getPendingInterval(myBiz.id);
+    if (!pending) { banner.style.display = 'none'; return; }
+    const firstFreeDay = DB.getFirstFreeDayForInterval(myBiz.id);
+    const ivLabel = pending.newInterval >= 60
+      ? `${Math.floor(pending.newInterval/60)}h ${pending.newInterval%60 ? pending.newInterval%60+'min' : ''}`.trim()
+      : `${pending.newInterval} min`;
+    const freeMsg = firstFreeDay
+      ? `Fecha estimada de aplicación: <strong style="color:var(--amber);">${firstFreeDay}</strong> (primer día sin turnos).`
+      : 'Se aplicará cuando no queden turnos activos.';
+    document.getElementById('pendingIntervalMsg').innerHTML =
+      `Nuevo intervalo solicitado: <strong style="color:var(--amber);">${ivLabel}</strong>. ${freeMsg}`;
+    banner.style.display = 'flex';
+  }
+
+  function cancelPendingInterval() {
+    if (!myBiz) return;
+    DB.clearPendingInterval(myBiz.id);
+    document.getElementById('pendingIntervalBanner').style.display = 'none';
+    Toast.show('Cambio de intervalo cancelado.', 'info');
+    // Restaurar el input al intervalo actual
+    const iv = myBiz.interval || 30;
+    document.getElementById('bizIntervalHours').value = Math.floor(iv / 60);
+    document.getElementById('bizIntervalMins').value  = iv % 60;
+    highlightQuickBtn(Math.floor(iv/60), iv%60);
+    updateSlotPreview();
+  }
+
+  function checkAndApplyPendingInterval() {
+    if (!myBiz) return;
+    const applied = DB.tryApplyPendingInterval(myBiz.id);
+    if (applied) {
+      myBiz = DB.getMyBusiness(currentUser.id);
+      Toast.show('✅ Se aplicó el nuevo intervalo de turnos: no había turnos activos.', 'success', 5000);
     }
   }
 
