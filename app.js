@@ -165,3 +165,62 @@ DB.getBizAvgRating = function(bizId)  {
   const rs=this.getBizReviews(bizId).filter(r=>r.rating>0);
   return rs.length ? (rs.reduce((s,r)=>s+r.rating,0)/rs.length).toFixed(1) : null;
 };
+
+// ── CAMBIO DE INTERVALO DIFERIDO ──
+// Guarda un cambio de intervalo pendiente para aplicar cuando no haya turnos activos
+DB.setPendingInterval = function(bizId, newInterval) {
+  const pending = this.getPendingIntervals();
+  pending[bizId] = { newInterval, requestedAt: new Date().toISOString() };
+  localStorage.setItem('sx_pending_intervals', JSON.stringify(pending));
+};
+DB.getPendingIntervals = function() {
+  return JSON.parse(localStorage.getItem('sx_pending_intervals') || '{}');
+};
+DB.getPendingInterval = function(bizId) {
+  return this.getPendingIntervals()[bizId] || null;
+};
+DB.clearPendingInterval = function(bizId) {
+  const pending = this.getPendingIntervals();
+  delete pending[bizId];
+  localStorage.setItem('sx_pending_intervals', JSON.stringify(pending));
+};
+// Devuelve la fecha (key es-AR) más próxima en los próximos 60 días laborales del negocio sin turnos activos
+DB.getFirstFreeDayForInterval = function(bizId) {
+  const biz = this.getBusinesses().find(b => b.id === bizId);
+  if (!biz) return null;
+  const workDays = biz.workDays && biz.workDays.length ? biz.workDays : [0,1,2,3,4,5,6];
+  const appts = this.getActiveAppts(bizId);
+  const occupiedDates = new Set(appts.map(a => a.date));
+  const today = new Date();
+  for (let i = 1; i <= 90; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    // Solo considerar días que el negocio trabaja
+    if (!workDays.includes(d.getDay())) continue;
+    const key = d.toLocaleDateString('es-AR');
+    // Día laboral sin turnos activos: este es el primer día libre
+    if (!occupiedDates.has(key)) return key;
+  }
+  return null;
+};
+// Verifica si hay algún día laboral futuro sin turnos activos y aplica el intervalo pendiente
+// Solo aplica cuando NINGÚN día laboral con turnos activos queda en el futuro
+DB.tryApplyPendingInterval = function(bizId) {
+  const pending = this.getPendingInterval(bizId);
+  if (!pending) return false;
+  const biz = this.getBusinesses().find(b => b.id === bizId);
+  if (!biz) return false;
+  const workDays = biz.workDays && biz.workDays.length ? biz.workDays : [0,1,2,3,4,5,6];
+  // Filtrar turnos activos que caigan en días laborales del negocio
+  const activeAppts = this.getActiveAppts(bizId).filter(a => {
+    const [dd, mm, yy] = a.date.split('/');
+    const dow = new Date(+yy, +mm - 1, +dd).getDay();
+    return workDays.includes(dow);
+  });
+  if (activeAppts.length > 0) return false; // aún hay turnos en días laborales
+  // No quedan turnos en días laborales: aplicar el cambio
+  biz.interval = pending.newInterval;
+  this.saveBusiness(biz);
+  this.clearPendingInterval(bizId);
+  return true;
+};
