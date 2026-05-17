@@ -13,6 +13,10 @@
       background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,184,.18) 0%, transparent 65%),
                   linear-gradient(160deg, var(--navy) 0%, var(--navy2) 60%, var(--navy3) 100%);
     }
+    [data-theme="light"] body {
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,184,.13) 0%, transparent 65%),
+                  linear-gradient(160deg, #EEEEF8 0%, #E4E5F4 60%, #D8DAF0 100%);
+    }
 
     /* HERO */
     .auth-layout {
@@ -204,9 +208,19 @@
     @media (max-width: 400px) {
       .auth-right { padding: 32px 16px 24px; }
     }
-  </style>
+    /* Mobile: solo ícono en el toggle */
+    @media (max-width: 640px) {
+      .theme-label { display: none; }
+      .theme-toggle { padding: 6px 8px; width: 36px; height: 36px; justify-content: center; border-radius: 50%; }
+    }
+</style>
 </head>
 <body>
+
+<!-- THEME TOGGLE (top-right fixed) -->
+<div style="position:fixed;top:14px;right:16px;z-index:500;">
+  <button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Cambiar tema"><span id="themeIcon">🌙</span><span class="theme-label"> Tema</span></button>
+</div>
 
 <div class="auth-layout">
   <div class="ring" style="width:500px;height:500px;top:-200px;right:-150px;"></div>
@@ -262,6 +276,16 @@
         <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--blue-200);">
           ¿No tenés cuenta? <a href="#" onclick="switchTab('register')" style="color:var(--blue-400);text-decoration:none;">Registrarse</a>
         </p>
+
+        <!-- DIVISOR -->
+        <div style="display:flex;align-items:center;gap:10px;margin:18px 0 4px;">
+          <div style="flex:1;height:1px;background:rgba(99,102,184,.18);"></div>
+          <span style="font-size:11px;color:var(--blue-200);white-space:nowrap;">o continuá sin cuenta</span>
+          <div style="flex:1;height:1px;background:rgba(99,102,184,.18);"></div>
+        </div>
+        <button class="btn full" onclick="enterAsGuest()" style="margin-top:10px;color:var(--blue-200);border-color:rgba(99,102,184,.2);">
+          👤 Continuar como invitado
+        </button>
       </div>
 
       <!-- REGISTRO -->
@@ -324,6 +348,32 @@
 
 <script src="app.js"></script>
 <script>
+  // ── TEMA ──
+  function initTheme() {
+    const t = localStorage.getItem('sx_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+    updateThemeBtn(t);
+  }
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('sx_theme', next);
+    updateThemeBtn(next);
+  }
+  function updateThemeBtn(t) {
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.textContent = t === 'dark' ? '☀️' : '🌙';
+  }
+  initTheme();
+
+  // ── INVITADO ──
+  function enterAsGuest() {
+    const guest = { id: 'guest_' + Date.now(), role: 'user', name: 'Invitado', lastName: '', isGuest: true };
+    DB.setCurrentUser(guest);
+    window.location.href = 'app.html';
+  }
+
   // Si ya está logueado, redirigir
   (function() {
     const u = DB.getCurrentUser();
