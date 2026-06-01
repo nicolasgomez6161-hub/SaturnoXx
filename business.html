@@ -246,6 +246,9 @@
       .layout { display: block; }
       .content { padding: 20px 16px 80px; }
 
+      /* Reservar turno grid → single column on mobile */
+      #bizBookGrid { grid-template-columns: 1fr !important; }
+
       /* NAV BAR — compacta */
       .navbar { padding: 10px 14px; }
       .logo img { height: 32px !important; }
@@ -253,7 +256,8 @@
       /* Ocultar "Salir" texto, mostrar ícono en mobile */
       .btn-exit-label { display: none; }
       .btn-exit-icon { display: inline !important; font-size: 16px; }
-      .btn.danger { padding: 6px 10px; min-height: 36px; border-radius: 50%; width: 36px; height: 36px; justify-content: center; }
+      /* Solo el botón de salir (navbar) se vuelve circular; los danger del contenido mantienen forma normal */
+      .navbar .btn.danger { padding: 6px 10px; min-height: 36px; border-radius: 50%; width: 36px; height: 36px; justify-content: center; }
       #navUser { display: none; }
 
       /* SETUP CARD */
@@ -299,6 +303,10 @@
 
       /* BIZ NOTIF BANNER */
       #bizNotifBanner { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+      /* FINANZAS */
+      #finTablesGrid { grid-template-columns: 1fr !important; }
+      #finPeriodCards { grid-template-columns: 1fr !important; }
     }
     @media (max-width: 400px) {
       .content { padding: 16px 12px 80px; }
@@ -311,7 +319,7 @@
 <body>
 
 <nav class="navbar">
-  <a href="business.html" class="logo"><img src="saturnox.png" alt="SaturnoX" style="height:50px;width:auto;filter:brightness(1.1);vertical-align:middle;" /></a>
+  <a href="business.html" class="logo"><img id="logoNav" src="saturnox.png" alt="SaturnoX" style="height:50px;width:auto;filter:brightness(1.1);vertical-align:middle;" /></a>
   <div class="nav-right">
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Cambiar tema"><span id="themeIcon">🌙</span><span class="theme-label"> Tema</span></button>
     <span style="font-size:13px;color:var(--blue-200);" id="navUser" class="nav-desktop-btn"></span>
@@ -335,8 +343,14 @@
       <span class="sidebar-icon">⭐</span> Reseñas
     </button>
     <div class="sidebar-ttl" style="margin-top:12px;">Configuración</div>
+    <button class="sidebar-btn" id="sb-reservar" onclick="showPage('reservar')">
+      <span class="sidebar-icon">📋</span> Reservar turno
+    </button>
     <button class="sidebar-btn" id="sb-negocio" onclick="showPage('negocio')">
       <span class="sidebar-icon">🏪</span> Mi negocio
+    </button>
+    <button class="sidebar-btn hidden" id="sb-finanzas" onclick="showPage('finanzas')">
+      <span class="sidebar-icon">💰</span> Finanzas
     </button>
   </aside>
 
@@ -489,6 +503,15 @@
           <textarea class="form-textarea" id="bizDesc" placeholder="Describí brevemente tus servicios..."></textarea>
         </div>
 
+        <div class="form-group">
+          <label class="form-label">Valor del turno <span style="font-size:10px;color:var(--blue-400);font-weight:400;text-transform:none;letter-spacing:0;">(opcional)</span></label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--blue-200);pointer-events:none;">$</span>
+            <input class="form-input" type="number" id="bizPrice" min="0" step="100" placeholder="Ej: 5000" style="padding-left:26px;" />
+          </div>
+          <div style="margin-top:6px;font-size:11px;color:var(--blue-200);">💡 Se muestra al usuario de forma informativa al ver tu negocio. No es obligatorio.</div>
+        </div>
+
         <div style="height:1px;background:rgba(99,102,184,.15);margin:24px 0;"></div>
         <h3>Horarios de atención</h3>
         <p class="card-sub">Los turnos se generan automáticamente en el intervalo seleccionado</p>
@@ -610,12 +633,142 @@
           </div>
         </div>
 
-        <div style="height:1px;background:rgba(99,102,184,.15);margin:24px 0;"></div></div>
+        <div style="height:1px;background:rgba(99,102,184,.15);margin:24px 0;"></div>
+        <h3>Capacidad por turno</h3>
+        <p class="card-sub">¿Cuántas personas pueden reservar el mismo horario? (útil para clases grupales)</p>
+
+        <div class="form-group">
+          <label class="form-label">Cupos por horario</label>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="position:relative;">
+              <input class="form-input" type="number" id="bizSlotCapacity" min="1" max="100" value="1"
+                style="width:100px;text-align:center;"
+                oninput="this.value=Math.max(1,Math.min(100,parseInt(this.value)||1));updateCapacityLabel()" />
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="iv-quick" onclick="document.getElementById('bizSlotCapacity').value=1;updateCapacityLabel()">1 (individual)</button>
+              <button type="button" class="iv-quick" onclick="document.getElementById('bizSlotCapacity').value=5;updateCapacityLabel()">5</button>
+              <button type="button" class="iv-quick" onclick="document.getElementById('bizSlotCapacity').value=10;updateCapacityLabel()">10</button>
+              <button type="button" class="iv-quick" onclick="document.getElementById('bizSlotCapacity').value=20;updateCapacityLabel()">20</button>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--blue-200);" id="capacityLabel">1 cupo por horario — turnos individuales</div>
+        </div>
+
+        <div style="height:1px;background:rgba(99,102,184,.15);margin:24px 0;"></div>
 
         <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
           <button class="btn primary lg" onclick="saveBiz()">Guardar cambios</button>
           <button class="btn danger" id="btnDelete" onclick="deleteBiz()" style="display:none;">Eliminar negocio</button>
         </div>
+
+        <div style="height:1px;background:rgba(99,102,184,.15);margin:24px 0;"></div>
+        <h3>Módulo de finanzas</h3>
+        <p class="card-sub">Activá el módulo para registrar ingresos, gastos y proyecciones financieras</p>
+
+        <div class="form-group" style="display:flex;align-items:center;gap:14px;">
+          <div style="display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;" onclick="toggleFinanzas()">
+            <div id="finanzasToggleTrack" style="position:relative;width:44px;height:24px;border-radius:12px;background:rgba(99,102,184,.15);border:1px solid rgba(99,102,184,.2);transition:all .25s;flex-shrink:0;">
+              <div id="finanzasToggleThumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--blue-200);transition:all .25s;"></div>
+            </div>
+            <span style="font-size:13px;color:var(--blue-100);" id="finanzasToggleLabel">Módulo de finanzas desactivado</span>
+          </div>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:var(--blue-200);">💡 Al activarlo aparecerá una nueva sección "Finanzas" en el menú lateral.</div>
+
+      </div>
+    </div>
+
+    <!-- FINANZAS -->
+    <div id="page-finanzas" class="hidden">
+      <div class="page-hdr-row">
+        <div>
+          <h2>💰 Finanzas</h2>
+          <p style="font-size:13px;color:var(--blue-200);margin-top:2px;">Controlá tus ingresos, gastos y proyecciones</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn primary" onclick="openIncomeModal()">+ Registrar ingreso</button>
+          <button class="btn" onclick="openExpenseModal()">+ Agregar gasto</button>
+        </div>
+      </div>
+
+      <!-- KPI cards -->
+      <div class="stats-row" id="finKpiRow"></div>
+
+      <!-- Periodos -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;" id="finPeriodCards"></div>
+
+      <!-- Proyeccion -->
+      <div id="finProyeccionCard" style="background:linear-gradient(135deg,rgba(93,202,165,.08),rgba(99,102,184,.06));border:1px solid rgba(93,202,165,.25);border-radius:var(--r-lg);padding:20px 24px;margin-bottom:24px;"></div>
+
+      <!-- Tabla movimientos -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;" id="finTablesGrid">
+        <div>
+          <div style="font-family:var(--font-display);font-size:12px;color:var(--blue-400);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Ingresos recientes</div>
+          <div id="finIncomeList" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+        <div>
+          <div style="font-family:var(--font-display);font-size:12px;color:var(--blue-400);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Gastos recientes</div>
+          <div id="finExpenseList" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESERVAR TURNO (negocio) -->
+    <div id="page-reservar" class="hidden">
+      <div class="page-hdr">
+        <h2>Reservar turno</h2>
+        <p>Agendá un turno manualmente para un cliente</p>
+      </div>
+
+      <div id="bizBookAlert" class="alert" style="display:none;margin-bottom:16px;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;" id="bizBookGrid">
+
+        <!-- LEFT: datos del cliente -->
+        <div class="setup-card" style="max-width:100%;">
+          <h3>Datos del cliente</h3>
+          <p class="card-sub">Nombre, apellido y teléfono opcional</p>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nombre *</label>
+              <input class="form-input" type="text" id="guestFirstName" placeholder="Ej: Lucía" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Apellido *</label>
+              <input class="form-input" type="text" id="guestLastName" placeholder="Ej: Martínez" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Teléfono <span style="font-size:10px;color:var(--blue-400);font-weight:400;text-transform:none;letter-spacing:0;">(opcional)</span></label>
+            <input class="form-input" type="tel" id="guestPhone" placeholder="Ej: 2477 123456" />
+          </div>
+
+          <div style="margin-top:20px;">
+            <button class="btn primary lg full" onclick="confirmBizBooking()">Confirmar reserva</button>
+          </div>
+        </div>
+
+        <!-- RIGHT: fecha y horario -->
+        <div class="setup-card" style="max-width:100%;">
+          <h3>Fecha y horario</h3>
+          <p class="card-sub">Seleccioná el día y el turno disponible</p>
+
+          <div class="form-group">
+            <label class="form-label">Fecha *</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;max-height:180px;overflow-y:auto;padding-right:2px;" id="bizBookDates"></div>
+          </div>
+
+          <div class="form-group" style="margin-top:4px;">
+            <label class="form-label">Horario *</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;max-height:220px;overflow-y:auto;padding-right:2px;" id="bizBookSlots">
+              <div style="font-size:12px;color:var(--blue-200);">Seleccioná una fecha primero</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -658,8 +811,65 @@
     <button class="bn-btn" id="bn-negocio" onclick="showPage('negocio');updateBottomNav('negocio')">
       <span class="bn-icon bn-notif" id="bnNegocioIcon">🏪</span>Config
     </button>
+    <button class="bn-btn hidden" id="bn-finanzas" onclick="showPage('finanzas');updateBottomNav('finanzas')">
+      <span class="bn-icon">💰</span>Finanzas
+    </button>
   </div>
 </nav>
+
+<!-- MODAL INGRESO -->
+<div class="modal-overlay hidden" id="incomeModal">
+  <div class="modal-box" style="max-width:420px;">
+    <h3>💵 Registrar ingreso</h3>
+    <p>Ingresá los datos del ingreso a registrar</p>
+    <div class="form-group">
+      <label class="form-label">Concepto *</label>
+      <input class="form-input" type="text" id="incomeDesc" placeholder="Ej: Turno del día, Venta de producto…" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Monto (ARS) *</label>
+      <div style="position:relative;">
+        <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--blue-200);pointer-events:none;">$</span>
+        <input class="form-input" type="number" id="incomeAmount" min="0" step="100" placeholder="Ej: 5000" style="padding-left:26px;" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha</label>
+      <input class="form-input" type="date" id="incomeDate" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn primary lg" onclick="saveIncome()">Guardar ingreso</button>
+      <button class="btn" onclick="closeIncomeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GASTO -->
+<div class="modal-overlay hidden" id="expenseModal">
+  <div class="modal-box" style="max-width:420px;">
+    <h3>📤 Agregar gasto</h3>
+    <p>Registrá un gasto para descontarlo de tus ingresos</p>
+    <div class="form-group">
+      <label class="form-label">Concepto *</label>
+      <input class="form-input" type="text" id="expenseDesc" placeholder="Ej: Alquiler, Insumos, Publicidad…" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Monto (ARS) *</label>
+      <div style="position:relative;">
+        <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--blue-200);pointer-events:none;">$</span>
+        <input class="form-input" type="number" id="expenseAmount" min="0" step="100" placeholder="Ej: 8000" style="padding-left:26px;" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha</label>
+      <input class="form-input" type="date" id="expenseDate" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger lg" onclick="saveExpense()">Guardar gasto</button>
+      <button class="btn" onclick="closeExpenseModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL CANCELAR TURNO (negocio) -->
 <div class="modal-overlay hidden" id="cancelModal">
@@ -886,10 +1096,15 @@
   let cancellingApptId = null;
 
   // ── TEMA ──
+  function updateLogo(theme) {
+    const el = document.getElementById('logoNav');
+    if (el) el.src = theme === 'light' ? 'saturnoxdark.png' : 'saturnox.png';
+  }
   function initTheme() {
     const t = localStorage.getItem('sx_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', t);
     updateThemeBtn(t);
+    updateLogo(t);
   }
   function toggleTheme() {
     const cur = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -897,6 +1112,7 @@
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('sx_theme', next);
     updateThemeBtn(next);
+    updateLogo(next);
   }
   function updateThemeBtn(t) {
     const icon = document.getElementById('themeIcon');
@@ -934,7 +1150,7 @@
   }
 
   function updateBottomNav(page) {
-    ['dashboard','agenda','clientes','resenas','negocio'].forEach(p => {
+    ['dashboard','agenda','clientes','resenas','negocio','finanzas'].forEach(p => {
       const b = document.getElementById('bn-'+p);
       if (b) b.classList.toggle('active', p === page);
     });
@@ -943,7 +1159,7 @@
   }
 
   function showPage(page) {
-    ['dashboard','agenda','clientes','negocio','resenas'].forEach(p => {
+    ['dashboard','agenda','clientes','negocio','resenas','reservar','finanzas'].forEach(p => {
       document.getElementById('page-'+p).classList.toggle('hidden', p !== page);
       const sb = document.getElementById('sb-'+p);
       if (sb) sb.classList.toggle('active', p === page);
@@ -954,6 +1170,8 @@
     if (page === 'clientes')  renderClients();
     if (page === 'negocio')   renderNegocioForm();
     if (page === 'resenas')   renderBizResenas();
+    if (page === 'reservar')  renderBizBooking();
+    if (page === 'finanzas')  renderFinanzas();
   }
 
   /* ── ICON GRID ── */
@@ -1001,6 +1219,13 @@ function buildIconGrid() {
     updateSlotPreview();
   }
 
+  function updateCapacityLabel() {
+    const cap = parseInt(document.getElementById('bizSlotCapacity').value) || 1;
+    const lbl = document.getElementById('capacityLabel');
+    if (cap === 1) lbl.textContent = '1 cupo por horario — turnos individuales';
+    else lbl.textContent = `${cap} cupos por horario — hasta ${cap} personas pueden reservar el mismo turno`;
+  }
+
   function toggleDepositFields(forceValue) {
     if (forceValue !== undefined) {
       depositEnabled = !!forceValue;
@@ -1028,6 +1253,7 @@ function buildIconGrid() {
     document.getElementById('bizAddr').value     = b.address  || '';
     document.getElementById('bizPhone').value    = b.phone    || '';
     document.getElementById('bizDesc').value     = b.desc     || '';
+    document.getElementById('bizPrice').value    = b.price != null ? b.price : '';
     document.getElementById('bizStart').value    = b.startTime|| '09:00';
     document.getElementById('bizEnd').value      = b.endTime  || '18:00';
     const iv = b.interval || 30;
@@ -1054,8 +1280,14 @@ function buildIconGrid() {
       document.getElementById('bizDepositPhone').value  = b.depositPhone  || '';
     }
     toggleDepositFields(!!b.requireDeposit);
+    // Capacidad por turno
+    const cap = b.slotCapacity && b.slotCapacity > 1 ? b.slotCapacity : 1;
+    document.getElementById('bizSlotCapacity').value = cap;
+    updateCapacityLabel();
     buildDaysRow();
     updateSlotPreview();
+    // Finanzas
+    toggleFinanzas(!!b.finanzasEnabled);
   }
 
   /* ── SAVE BIZ ── */
@@ -1066,6 +1298,7 @@ function buildIconGrid() {
     const addr  = document.getElementById('bizAddr').value.trim();
     const phone = document.getElementById('bizPhone').value.trim();
     const desc  = document.getElementById('bizDesc').value.trim();
+    const price = document.getElementById('bizPrice').value !== '' ? parseFloat(document.getElementById('bizPrice').value) : null;
     const start = document.getElementById('bizStart').value;
     const end   = document.getElementById('bizEnd').value;
     const iv    = getIntervalMinutes();
@@ -1106,6 +1339,7 @@ function buildIconGrid() {
         (prev.address      || '') !== addr    ||
         (prev.phone        || '') !== phone   ||
         (prev.desc         || '') !== desc    ||
+        (prev.price != null ? prev.price : null) !== price ||
         (prev.startTime    || '') !== start   ||
         (prev.endTime      || '') !== end     ||
         (prev.interval     || 30) !== iv      ||
@@ -1132,11 +1366,13 @@ function buildIconGrid() {
     const biz = {
       id:        myBiz ? myBiz.id : Date.now(),
       ownerId:   currentUser.id,
-      name, type, category: cat, address: addr, phone, desc, icon,
+      name, type, category: cat, address: addr, phone, desc, icon, price,
       startTime: start, endTime: end, interval: intervalToSave,
       startTime2: block2Active ? start2 : '', endTime2: block2Active ? end2 : '',
       workDays:  [...selectedWorkDays].sort(), active: true,
-      requireDeposit, depositAlias, depositHolder, depositAmount, depositPhone
+      requireDeposit, depositAlias, depositHolder, depositAmount, depositPhone,
+      slotCapacity: parseInt(document.getElementById('bizSlotCapacity').value) || 1,
+      finanzasEnabled: finanzasEnabled,
     };
 
     DB.saveBusiness(biz);
@@ -1148,11 +1384,11 @@ function buildIconGrid() {
     } else if (intervalChanged && hasFutureAppts) {
       // Guardar el cambio como pendiente
       DB.setPendingInterval(myBiz.id, iv);
-      const firstFreeDay = DB.getFirstFreeDayForInterval(myBiz.id);
-      const freeMsg = firstFreeDay
-        ? `Se aplicará el ${firstFreeDay}, que es el primer día sin turnos agendados.`
-        : 'Se aplicará cuando no queden turnos activos.';
-      showBizAlert(`El intervalo cambiará a ${iv} min cuando no haya turnos agendados. ${freeMsg}`, 'success');
+      const changeDate = DB.getIntervalChangeDate(myBiz.id);
+      const freeMsg = changeDate
+        ? `Se aplicará a partir del <strong>${changeDate}</strong> (primer día laborable después del último turno agendado).`
+        : 'Se aplicará de inmediato: no hay turnos activos.';
+      showBizAlert(`El intervalo cambiará a ${iv} min. ${freeMsg}`, 'success');
       renderPendingIntervalBanner();
       // Restaurar el input al valor real actual
       const currentIv = myBiz.interval || 30;
@@ -1405,8 +1641,24 @@ function buildIconGrid() {
 
   function renderAgendaSlots() {
     if (!myBiz || !agendaDate) return;
-    const slots = DB.generateSlots(myBiz.startTime, myBiz.endTime, myBiz.interval || 30)
-      .concat(myBiz.startTime2 && myBiz.endTime2 ? DB.generateSlots(myBiz.startTime2, myBiz.endTime2, myBiz.interval || 30) : []);
+
+    // Intervalo efectivo para la fecha de agenda seleccionada
+    let effectiveInterval = myBiz.interval || 30;
+    const pending = DB.getPendingInterval(myBiz.id);
+    if (pending) {
+      const changeDate = DB.getIntervalChangeDate(myBiz.id);
+      if (!changeDate) {
+        effectiveInterval = pending.newInterval; // sin turnos activos → nuevo intervalo ya rige
+      } else {
+        const toMs = key => { const [dd,mm,yy] = key.split('/'); return new Date(+yy,+mm-1,+dd).getTime(); };
+        if (toMs(agendaDate.key) >= toMs(changeDate)) {
+          effectiveInterval = pending.newInterval;
+        }
+      }
+    }
+
+    const slots = DB.generateSlots(myBiz.startTime, myBiz.endTime, effectiveInterval)
+      .concat(myBiz.startTime2 && myBiz.endTime2 ? DB.generateSlots(myBiz.startTime2, myBiz.endTime2, effectiveInterval) : []);
     const appts = DB.getBizAppointments(myBiz.id).filter(a => a.date === agendaDate.key);
     const users = DB.getUsers();
 
@@ -1416,35 +1668,68 @@ function buildIconGrid() {
     }
 
     document.getElementById('agendaSlots').innerHTML = slots.map(t => {
-      // Prefer active (non-cancelled) appointment; fall back to cancelled one
       const allForSlot = appts.filter(a => a.time === t);
-      const appt = allForSlot.find(a => !a.status.startsWith('cancel')) || allForSlot[allForSlot.length - 1];
-      const u = appt ? users.find(u => u.id === appt.userId) : null;
-      const isCancelled = appt && appt.status.startsWith('cancel');
-      const isActive = appt && !isCancelled;
+      const activeAppts = allForSlot.filter(a => !a.status.startsWith('cancel'));
+      const cancelledAppts = allForSlot.filter(a => a.status.startsWith('cancel'));
+      const capacity = myBiz.slotCapacity && myBiz.slotCapacity > 1 ? myBiz.slotCapacity : 1;
 
-      return `<div class="slot-row ${isActive ? 'taken' : ''}">
-        <span class="slot-time">${t}</span>
-        <div class="slot-info">
-          ${appt
-            ? `<div class="slot-user ${isCancelled ? 'opacity-40' : ''}" style="${isCancelled?'opacity:.5;text-decoration:line-through;':''}">${appt.isGuestBooking ? '👤 '+appt.userName : (u ? u.name+' '+u.lastName : 'Usuario')}${appt.forThirdParty ? ` <span style="font-size:11px;font-weight:400;color:var(--blue-200);">→ ${appt.thirdPartyName} · DNI ${appt.thirdPartyDni}</span>` : ''}</div>
-               <div class="slot-sub">${appt.isGuestBooking ? (appt.guestPhone ? '📞 '+appt.guestPhone : 'Invitado sin cuenta') : (u ? u.email : '')}</div>`
-            : `<div class="slot-free">Disponible</div>`}
-        </div>
-        <div class="slot-actions">
-          ${isActive
-            ? `<span class="badge green">Reservado</span>
-               <button class="btn-cancel-appt" onclick="openCancelModal(${appt.id}, '${u ? u.name+' '+u.lastName : 'Usuario'}', '${t}', '${agendaDate.label||agendaDate.key}')">
-                 Cancelar
-               </button>`
-            : isCancelled
-              ? `<span class="badge cancelled">
-                   ${appt.cancelledBy==='business' ? 'Cancelado por vos' : 'Cancelado por usuario'}
-                 </span>`
-              : `<span class="badge">Libre</span>`
-          }
-        </div>
-      </div>`;
+      // Si no hay ningún turno en este horario
+      if (!allForSlot.length) {
+        return `<div class="slot-row">
+          <span class="slot-time">${t}</span>
+          <div class="slot-info"><div class="slot-free">Disponible</div></div>
+          <div class="slot-actions"><span class="badge">Libre</span></div>
+        </div>`;
+      }
+
+      // Construir una fila por cada turno activo
+      const activeRows = activeAppts.map((appt, idx) => {
+        const u = users.find(u => u.id === appt.userId);
+        const userName = appt.isGuestBooking ? appt.userName : (u ? u.name+' '+u.lastName : 'Usuario');
+        const userSub  = appt.isGuestBooking ? (appt.guestPhone ? '📞 '+appt.guestPhone : 'Invitado sin cuenta') : (u ? u.email : '');
+        const thirdPartyInfo = appt.forThirdParty
+          ? ` <span style="font-size:11px;font-weight:400;color:var(--blue-200);">→ ${appt.thirdPartyName} · DNI ${appt.thirdPartyDni}</span>` : '';
+        const isFirst = idx === 0;
+        const showCount = capacity > 1 || activeAppts.length > 1;
+        return `<div class="slot-row taken" style="${idx > 0 ? 'border-top:1px dashed rgba(99,102,184,.18);margin-top:0;border-radius:0;' : ''}${activeAppts.length > 1 && idx === activeAppts.length - 1 ? 'border-radius:0 0 var(--r-sm) var(--r-sm);' : ''}${activeAppts.length > 1 && idx === 0 ? 'border-radius:var(--r-sm) var(--r-sm) 0 0;border-bottom:none;' : ''}">
+          <span class="slot-time">${isFirst ? t : ''}</span>
+          <div class="slot-info">
+            <div class="slot-user">
+              ${showCount ? `<span style="font-size:10px;font-weight:600;color:var(--blue-400);background:rgba(99,102,184,.12);border:1px solid rgba(99,102,184,.2);border-radius:8px;padding:1px 7px;margin-right:6px;">#${idx+1}</span>` : ''}
+              👤 ${userName}${thirdPartyInfo}
+            </div>
+            <div class="slot-sub">${userSub}</div>
+          </div>
+          <div class="slot-actions">
+            <span class="badge green">Reservado</span>
+            <button class="btn-cancel-appt" onclick="openCancelModal(${appt.id}, '${userName.replace(/'/g,"\\'")}', '${t}', '${agendaDate.label||agendaDate.key}')">
+              Cancelar
+            </button>
+          </div>
+        </div>`;
+      }).join('');
+
+      // Filas de cancelados (al final, colapsadas)
+      const cancelledRows = cancelledAppts.map(appt => {
+        const u = users.find(u => u.id === appt.userId);
+        const userName = appt.isGuestBooking ? appt.userName : (u ? u.name+' '+u.lastName : 'Usuario');
+        return `<div class="slot-row" style="opacity:.55;${activeAppts.length ? 'border-top:1px dashed rgba(99,102,184,.18);border-radius:0 0 var(--r-sm) var(--r-sm);' : ''}">
+          <span class="slot-time">${!activeAppts.length ? t : ''}</span>
+          <div class="slot-info">
+            <div class="slot-user" style="text-decoration:line-through;">👤 ${userName}</div>
+          </div>
+          <div class="slot-actions">
+            <span class="badge cancelled">${appt.cancelledBy==='business' ? 'Cancelado por vos' : 'Cancelado por usuario'}</span>
+          </div>
+        </div>`;
+      }).join('');
+
+      // Si solo hay cancelados (ningún activo), mostrar el slot normalmente
+      if (!activeAppts.length) {
+        return cancelledRows;
+      }
+
+      return activeRows + cancelledRows;
     }).join('');
   }
 
@@ -1538,13 +1823,13 @@ function buildIconGrid() {
     if (!banner || !myBiz) { if (banner) banner.style.display = 'none'; return; }
     const pending = DB.getPendingInterval(myBiz.id);
     if (!pending) { banner.style.display = 'none'; return; }
-    const firstFreeDay = DB.getFirstFreeDayForInterval(myBiz.id);
+    const changeDate = DB.getIntervalChangeDate(myBiz.id);
     const ivLabel = pending.newInterval >= 60
       ? `${Math.floor(pending.newInterval/60)}h ${pending.newInterval%60 ? pending.newInterval%60+'min' : ''}`.trim()
       : `${pending.newInterval} min`;
-    const freeMsg = firstFreeDay
-      ? `Fecha estimada de aplicación: <strong style="color:var(--amber);">${firstFreeDay}</strong> (primer día sin turnos).`
-      : 'Se aplicará cuando no queden turnos activos.';
+    const freeMsg = changeDate
+      ? `Se aplicará a partir del <strong style="color:var(--amber);">${changeDate}</strong> (primer día laborable después del último turno agendado).`
+      : 'Se aplicará de inmediato: no hay turnos activos.';
     document.getElementById('pendingIntervalMsg').innerHTML =
       `Nuevo intervalo solicitado: <strong style="color:var(--amber);">${ivLabel}</strong>. ${freeMsg}`;
     banner.style.display = 'flex';
@@ -1579,6 +1864,397 @@ function buildIconGrid() {
   document.getElementById('deleteModal').addEventListener('click', function(e) {
     if (e.target === this) closeDeleteModal();
   });
-</script>
-</body>
+  document.getElementById('incomeModal').addEventListener('click', function(e) {
+    if (e.target === this) closeIncomeModal();
+  });
+  document.getElementById('expenseModal').addEventListener('click', function(e) {
+    if (e.target === this) closeExpenseModal();
+  });
+
+  /* ══════════════════════════════════════════
+     RESERVAR TURNO (negocio reserva para cliente)
+  ══════════════════════════════════════════ */
+  let bizBookDate = null;
+  let bizBookSlot = null;
+
+  function renderBizBooking() {
+    myBiz = DB.getMyBusiness(currentUser.id);
+    bizBookDate = null;
+    bizBookSlot = null;
+    document.getElementById('guestFirstName').value = '';
+    document.getElementById('guestLastName').value  = '';
+    document.getElementById('guestPhone').value     = '';
+    showBizBookAlert('', '');
+
+    if (!myBiz) {
+      document.getElementById('bizBookDates').innerHTML = '<div style="font-size:12px;color:var(--blue-200);">Primero configurá tu negocio.</div>';
+      document.getElementById('bizBookSlots').innerHTML = '';
+      return;
+    }
+
+    const dates = Dates.getNext(30).filter(d => myBiz.workDays ? myBiz.workDays.includes(d.weekday) : true);
+    document.getElementById('bizBookDates').innerHTML = dates.map(d => `
+      <button type="button" onclick="selectBizBookDate('${d.key}','${d.dow}','${d.day}','${d.month}')"
+        id="bizBookDate_${d.key.replace(/\//g,'_')}"
+        style="padding:7px 12px;border-radius:var(--r-sm);border:var(--border);background:transparent;
+          font-family:var(--font-body);font-size:12px;font-weight:500;color:var(--blue-200);
+          cursor:pointer;transition:all .2s;text-align:center;">
+        <span style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.5px;">${d.dow}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--blue-50);">${d.day}</span>
+        <span style="display:block;font-size:10px;">${d.month}</span>
+      </button>
+    `).join('');
+
+    document.getElementById('bizBookSlots').innerHTML = '<div style="font-size:12px;color:var(--blue-200);">Seleccioná una fecha primero</div>';
+  }
+
+  function selectBizBookDate(key, dow, day, month) {
+    bizBookDate = { key, label: `${dow} ${day} de ${month}` };
+    bizBookSlot = null;
+    // Highlight selected date
+    document.querySelectorAll('#bizBookDates button').forEach(b => {
+      b.style.background = 'transparent';
+      b.style.borderColor = 'rgba(99,102,184,.2)';
+      b.style.color = 'var(--blue-200)';
+    });
+    const btn = document.getElementById('bizBookDate_' + key.replace(/\//g,'_'));
+    if (btn) {
+      btn.style.background = 'var(--blue-600)';
+      btn.style.borderColor = 'var(--blue-600)';
+      btn.style.color = '#fff';
+    }
+    renderBizBookSlots();
+  }
+
+  function renderBizBookSlots() {
+    if (!myBiz || !bizBookDate) return;
+    const iv = myBiz.interval || 30;
+    const slots = DB.generateSlots(myBiz.startTime, myBiz.endTime, iv)
+      .concat(myBiz.startTime2 && myBiz.endTime2 ? DB.generateSlots(myBiz.startTime2, myBiz.endTime2, iv) : []);
+
+    const container = document.getElementById('bizBookSlots');
+    if (!slots.length) {
+      container.innerHTML = '<div style="font-size:12px;color:var(--blue-200);">Sin horarios configurados.</div>';
+      return;
+    }
+
+    const capacity = myBiz.slotCapacity && myBiz.slotCapacity > 1 ? myBiz.slotCapacity : 1;
+
+    container.innerHTML = slots.map(t => {
+      const remaining = DB.getSlotRemaining(myBiz.id, bizBookDate.key, t);
+      const taken = remaining <= 0;
+      const showCount = capacity > 1;
+      const countLabel = showCount
+        ? `<span style="font-size:9px;display:block;margin-top:2px;color:${taken?'rgba(99,102,184,.3)':remaining<=2?'var(--amber)':'var(--green)'};">${taken?'Completo':`${remaining} libre${remaining>1?'s':''}`}</span>`
+        : '';
+      return `<button type="button"
+        id="bizSlot_${t.replace(':','_')}"
+        onclick="${taken ? '' : `selectBizSlot('${t}')`}"
+        ${taken ? 'disabled' : ''}
+        style="padding:8px 14px;border-radius:var(--r-sm);border:1px solid ${taken ? 'rgba(99,102,184,.12)' : 'rgba(99,102,184,.25)'};
+          background:${taken ? 'rgba(0,0,0,.15)' : 'transparent'};
+          font-family:var(--font-body);font-size:13px;font-weight:500;
+          color:${taken ? 'rgba(99,102,184,.35)' : 'var(--blue-200)'};
+          cursor:${taken ? 'not-allowed' : 'pointer'};transition:all .2s;
+          text-decoration:${taken ? 'line-through' : 'none'};text-align:center;min-width:60px;">
+        ${t}${countLabel}
+      </button>`;
+    }).join('');
+  }
+
+  function selectBizSlot(time) {
+    bizBookSlot = time;
+    document.querySelectorAll('#bizBookSlots button').forEach(b => {
+      if (!b.disabled) {
+        b.style.background = 'transparent';
+        b.style.borderColor = 'rgba(99,102,184,.25)';
+        b.style.color = 'var(--blue-200)';
+      }
+    });
+    const btn = document.getElementById('bizSlot_' + time.replace(':','_'));
+    if (btn) {
+      btn.style.background = 'var(--blue-600)';
+      btn.style.borderColor = 'var(--blue-600)';
+      btn.style.color = '#fff';
+    }
+  }
+
+  function showBizBookAlert(msg, type) {
+    const el = document.getElementById('bizBookAlert');
+    el.textContent = msg;
+    el.className = 'alert' + (type ? ' ' + type : '');
+    el.style.display = msg ? 'block' : 'none';
+  }
+
+  function confirmBizBooking() {
+    const firstName = document.getElementById('guestFirstName').value.trim();
+    const lastName  = document.getElementById('guestLastName').value.trim();
+    const phone     = document.getElementById('guestPhone').value.trim();
+
+    if (!firstName || !lastName) { showBizBookAlert('Ingresá nombre y apellido del cliente.', 'error'); return; }
+    if (!bizBookDate) { showBizBookAlert('Seleccioná una fecha.', 'error'); return; }
+    if (!bizBookSlot) { showBizBookAlert('Seleccioná un horario.', 'error'); return; }
+    if (DB.isTaken(myBiz.id, bizBookDate.key, bizBookSlot)) { showBizBookAlert('Ese horario ya está ocupado.', 'error'); return; }
+
+    const appt = {
+      id:            Date.now(),
+      bizId:         myBiz.id,
+      userId:        currentUser.id,
+      userName:      firstName + ' ' + lastName,
+      date:          bizBookDate.key,
+      time:          bizBookSlot,
+      status:        'confirmed',
+      createdAt:     new Date().toISOString(),
+      isGuestBooking: true,
+      guestPhone:    phone || null,
+      bookedByBiz:   true,
+    };
+    DB.saveAppointment(appt);
+    Toast.show(`✅ Turno reservado para ${firstName} ${lastName} el ${bizBookDate.label} a las ${bizBookSlot} hs`, 'success', 5000);
+    showBizBookAlert('', '');
+    // Reset
+    document.getElementById('guestFirstName').value = '';
+    document.getElementById('guestLastName').value  = '';
+    document.getElementById('guestPhone').value     = '';
+    bizBookDate = null;
+    bizBookSlot = null;
+    renderBizBooking();
+  }
+  /* ══════════════════════════════════════════
+     FINANZAS
+  ══════════════════════════════════════════ */
+
+  // ── DB helpers ──
+  DB.getFinEntries = function(bizId) {
+    return JSON.parse(localStorage.getItem('sx_fin_'+bizId)||'[]');
+  };
+  DB.saveFinEntry = function(bizId, entry) {
+    const list = this.getFinEntries(bizId);
+    const idx  = list.findIndex(e=>e.id===entry.id);
+    if(idx>=0) list[idx]=entry; else list.push(entry);
+    localStorage.setItem('sx_fin_'+bizId, JSON.stringify(list));
+  };
+  DB.deleteFinEntry = function(bizId, id) {
+    const list = this.getFinEntries(bizId).filter(e=>e.id!==id);
+    localStorage.setItem('sx_fin_'+bizId, JSON.stringify(list));
+  };
+
+  // ── Toggle finanzas ──
+  let finanzasEnabled = false;
+
+  function toggleFinanzas(forceValue) {
+    if (forceValue !== undefined) finanzasEnabled = !!forceValue;
+    else finanzasEnabled = !finanzasEnabled;
+    const track = document.getElementById('finanzasToggleTrack');
+    const thumb = document.getElementById('finanzasToggleThumb');
+    const label = document.getElementById('finanzasToggleLabel');
+    if (track) {
+      track.style.background  = finanzasEnabled ? 'var(--blue-600)' : 'rgba(99,102,184,.15)';
+      track.style.borderColor = finanzasEnabled ? 'var(--blue-600)' : 'rgba(99,102,184,.2)';
+    }
+    if (thumb) thumb.style.transform = finanzasEnabled ? 'translateX(20px)' : 'translateX(0)';
+    if (thumb) thumb.style.background = finanzasEnabled ? '#fff' : 'var(--blue-200)';
+    if (label) label.textContent = finanzasEnabled ? 'Módulo de finanzas activado' : 'Módulo de finanzas desactivado';
+    // Show/hide menu items
+    ['sb-finanzas','bn-finanzas'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.classList.toggle('hidden', !finanzasEnabled);
+    });
+    // Persist to biz
+    if (myBiz) {
+      myBiz.finanzasEnabled = finanzasEnabled;
+      DB.saveBusiness(myBiz);
+    }
+  }
+
+  // ── Date helpers ──
+  function todayKey() { return new Date().toLocaleDateString('es-AR'); }
+  function dateToKey(d) { return new Date(d).toLocaleDateString('es-AR'); }
+  function keyToMs(key) {
+    const [dd,mm,yy] = key.split('/');
+    return new Date(+yy,+mm-1,+dd).getTime();
+  }
+  function isSameWeek(key) {
+    const d = new Date(keyToMs(key));
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setHours(0,0,0,0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate()+7);
+    return d >= startOfWeek && d < endOfWeek;
+  }
+  function isSameMonth(key) {
+    const d = new Date(keyToMs(key));
+    const today = new Date();
+    return d.getMonth()===today.getMonth() && d.getFullYear()===today.getFullYear();
+  }
+  function formatARS(n) {
+    return '$' + Math.round(n).toLocaleString('es-AR');
+  }
+
+  // ── Render page ──
+  function renderFinanzas() {
+    myBiz = DB.getMyBusiness(currentUser.id);
+    if (!myBiz || !myBiz.finanzasEnabled) {
+      document.getElementById('finKpiRow').innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="em-ico">💰</div><p>Activá el módulo de finanzas en Configuración → Mi negocio.</p></div>';
+      return;
+    }
+    const entries = DB.getFinEntries(myBiz.id);
+    const incomes  = entries.filter(e=>e.type==='income');
+    const expenses = entries.filter(e=>e.type==='expense');
+
+    const today = todayKey();
+    const totalIncome  = incomes.reduce((s,e)=>s+e.amount,0);
+    const totalExpense = expenses.reduce((s,e)=>s+e.amount,0);
+    const netBalance   = totalIncome - totalExpense;
+
+    // Appts projection
+    const activeAppts = DB.getActiveAppts(myBiz.id);
+    const price = myBiz.price || 0;
+    const futureAppts = activeAppts.filter(a => {
+      const [dd,mm,yy]=a.date.split('/');
+      return new Date(+yy,+mm-1,+dd) > new Date();
+    });
+    const projectedRevenue = futureAppts.length * price;
+
+    // KPIs
+    document.getElementById('finKpiRow').innerHTML = `
+      <div class="stat-card"><span class="stat-num" style="color:var(--green);font-size:22px;">${formatARS(totalIncome)}</span><span class="stat-lbl">Ingresos brutos</span></div>
+      <div class="stat-card"><span class="stat-num" style="color:var(--red);font-size:22px;">${formatARS(totalExpense)}</span><span class="stat-lbl">Gastos totales</span></div>
+      <div class="stat-card"><span class="stat-num" style="color:${netBalance>=0?'var(--green)':'var(--red)'};font-size:22px;">${formatARS(netBalance)}</span><span class="stat-lbl">Balance neto</span></div>
+      <div class="stat-card"><span class="stat-num" style="color:var(--blue-400);font-size:22px;">${formatARS(projectedRevenue)}</span><span class="stat-lbl">Proyección turnos</span></div>
+    `;
+
+    // Period breakdown
+    const dayI  = incomes.filter(e=>e.date===today).reduce((s,e)=>s+e.amount,0);
+    const dayE  = expenses.filter(e=>e.date===today).reduce((s,e)=>s+e.amount,0);
+    const weekI = incomes.filter(e=>isSameWeek(e.date)).reduce((s,e)=>s+e.amount,0);
+    const weekE = expenses.filter(e=>isSameWeek(e.date)).reduce((s,e)=>s+e.amount,0);
+    const monI  = incomes.filter(e=>isSameMonth(e.date)).reduce((s,e)=>s+e.amount,0);
+    const monE  = expenses.filter(e=>isSameMonth(e.date)).reduce((s,e)=>s+e.amount,0);
+
+    function periodCard(label, icon, ing, gas) {
+      const net = ing - gas;
+      return `<div style="background:var(--glass);border:var(--border);border-radius:var(--r-lg);padding:16px 18px;">
+        <div style="font-size:11px;color:var(--blue-400);text-transform:uppercase;letter-spacing:1.2px;font-weight:600;margin-bottom:10px;">${icon} ${label}</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--blue-200);">Ingresos</span><span style="color:var(--green);font-weight:600;">${formatARS(ing)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--blue-200);">Gastos</span><span style="color:var(--red);font-weight:600;">${formatARS(gas)}</span></div>
+          <div style="height:1px;background:rgba(99,102,184,.15);margin:4px 0;"></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;"><span style="color:var(--blue-50);">Neto</span><span style="color:${net>=0?'var(--green)':'var(--red)'};">${formatARS(net)}</span></div>
+        </div>
+      </div>`;
+    }
+    document.getElementById('finPeriodCards').innerHTML =
+      periodCard('Hoy','📅',dayI,dayE) +
+      periodCard('Esta semana','📆',weekI,weekE) +
+      periodCard('Este mes','🗓️',monI,monE);
+
+    // Proyection card
+    const apptToday   = activeAppts.filter(a=>a.date===today).length;
+    const apptWeek    = activeAppts.filter(a=>isSameWeek(a.date)).length;
+    const apptMonth   = activeAppts.filter(a=>isSameMonth(a.date)).length;
+    document.getElementById('finProyeccionCard').innerHTML = price > 0 ? `
+      <div style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--green);margin-bottom:12px;">🔮 Proyección por turnos reservados</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div style="text-align:center;padding:10px 18px;background:rgba(93,202,165,.08);border:1px solid rgba(93,202,165,.2);border-radius:var(--r-md);">
+          <div style="font-size:18px;font-weight:700;color:var(--green);">${formatARS(apptToday*price)}</div>
+          <div style="font-size:11px;color:var(--blue-200);margin-top:2px;">Hoy · ${apptToday} turnos</div>
+        </div>
+        <div style="text-align:center;padding:10px 18px;background:rgba(93,202,165,.08);border:1px solid rgba(93,202,165,.2);border-radius:var(--r-md);">
+          <div style="font-size:18px;font-weight:700;color:var(--green);">${formatARS(apptWeek*price)}</div>
+          <div style="font-size:11px;color:var(--blue-200);margin-top:2px;">Esta semana · ${apptWeek} turnos</div>
+        </div>
+        <div style="text-align:center;padding:10px 18px;background:rgba(93,202,165,.08);border:1px solid rgba(93,202,165,.2);border-radius:var(--r-md);">
+          <div style="font-size:18px;font-weight:700;color:var(--green);">${formatARS(apptMonth*price)}</div>
+          <div style="font-size:11px;color:var(--blue-200);margin-top:2px;">Este mes · ${apptMonth} turnos</div>
+        </div>
+        <div style="text-align:center;padding:10px 18px;background:rgba(99,102,184,.08);border:1px solid rgba(99,102,184,.2);border-radius:var(--r-md);">
+          <div style="font-size:18px;font-weight:700;color:var(--blue-200);">${formatARS(projectedRevenue)}</div>
+          <div style="font-size:11px;color:var(--blue-200);margin-top:2px;">Turnos futuros · ${futureAppts.length} total</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:rgba(93,202,165,.6);">* Basado en el precio del turno (${formatARS(price)}) configurado en Mi negocio.</div>
+    ` : `<div style="font-size:13px;color:var(--blue-200);">💡 Configurá el <strong style="color:var(--blue-50);">precio del turno</strong> en Mi negocio para ver proyecciones de ingresos por turnos reservados.</div>`;
+
+    // Lists
+    const recentInc = [...incomes].sort((a,b)=>b.id-a.id).slice(0,10);
+    const recentExp = [...expenses].sort((a,b)=>b.id-a.id).slice(0,10);
+
+    function entryRow(e) {
+      const isIncome = e.type==='income';
+      const color = isIncome ? 'var(--green)' : 'var(--red)';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--glass);border:var(--border);border-radius:var(--r-sm);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;color:var(--blue-50);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.desc}</div>
+          <div style="font-size:11px;color:var(--blue-200);">${e.date}</div>
+        </div>
+        <div style="font-weight:700;font-size:14px;color:${color};white-space:nowrap;">${isIncome?'+':'-'}${formatARS(e.amount)}</div>
+        <button onclick="deleteFinEntry('${e.id}')" style="background:none;border:none;color:rgba(226,75,74,.5);cursor:pointer;font-size:16px;padding:2px 4px;border-radius:4px;transition:color .2s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='rgba(226,75,74,.5)'">✕</button>
+      </div>`;
+    }
+
+    document.getElementById('finIncomeList').innerHTML = recentInc.length
+      ? recentInc.map(entryRow).join('')
+      : '<div style="text-align:center;padding:20px;color:var(--blue-200);font-size:13px;">Sin ingresos registrados</div>';
+    document.getElementById('finExpenseList').innerHTML = recentExp.length
+      ? recentExp.map(entryRow).join('')
+      : '<div style="text-align:center;padding:20px;color:var(--blue-200);font-size:13px;">Sin gastos registrados</div>';
+  }
+
+  // ── Income modal ──
+  function openIncomeModal() {
+    document.getElementById('incomeDesc').value = '';
+    document.getElementById('incomeAmount').value = '';
+    document.getElementById('incomeDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('incomeModal').classList.remove('hidden');
+  }
+  function closeIncomeModal() {
+    document.getElementById('incomeModal').classList.add('hidden');
+  }
+  function saveIncome() {
+    const desc   = document.getElementById('incomeDesc').value.trim();
+    const amount = parseFloat(document.getElementById('incomeAmount').value);
+    const date   = document.getElementById('incomeDate').value;
+    if (!desc)        { Toast.show('Ingresá un concepto', 'error'); return; }
+    if (!amount || amount<=0) { Toast.show('Ingresá un monto válido', 'error'); return; }
+    const key = date ? dateToKey(date+'T12:00:00') : todayKey();
+    DB.saveFinEntry(myBiz.id, { id: Date.now(), type:'income', desc, amount, date:key, createdAt: new Date().toISOString() });
+    closeIncomeModal();
+    Toast.show('Ingreso registrado ✅', 'success');
+    renderFinanzas();
+  }
+
+  // ── Expense modal ──
+  function openExpenseModal() {
+    document.getElementById('expenseDesc').value = '';
+    document.getElementById('expenseAmount').value = '';
+    document.getElementById('expenseDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('expenseModal').classList.remove('hidden');
+  }
+  function closeExpenseModal() {
+    document.getElementById('expenseModal').classList.add('hidden');
+  }
+  function saveExpense() {
+    const desc   = document.getElementById('expenseDesc').value.trim();
+    const amount = parseFloat(document.getElementById('expenseAmount').value);
+    const date   = document.getElementById('expenseDate').value;
+    if (!desc)        { Toast.show('Ingresá un concepto', 'error'); return; }
+    if (!amount || amount<=0) { Toast.show('Ingresá un monto válido', 'error'); return; }
+    const key = date ? dateToKey(date+'T12:00:00') : todayKey();
+    DB.saveFinEntry(myBiz.id, { id: Date.now(), type:'expense', desc, amount, date:key, createdAt: new Date().toISOString() });
+    closeExpenseModal();
+    Toast.show('Gasto registrado 📤', 'success');
+    renderFinanzas();
+  }
+
+  function deleteFinEntry(id) {
+    if (!myBiz) return;
+    DB.deleteFinEntry(myBiz.id, parseInt(id));
+    Toast.show('Movimiento eliminado', 'info');
+    renderFinanzas();
+  }
+
+</script></body>
 </html>
