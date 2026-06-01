@@ -135,7 +135,7 @@ body{font-family:var(--font-body);background:var(--navy);color:var(--blue-50);mi
   --blue-50:#1a1c3a;
   --blue-100:#252858;
   --blue-200:#393C80;
-  --blue-400:#5560c8;
+  --blue-400: #393C80;
   --blue-600:#4a4ea0;
   --blue-700:#393C80;
   --blue-800:#2D3069;
@@ -157,7 +157,7 @@ body{font-family:var(--font-body);background:var(--navy);color:var(--blue-50);mi
   --glass-h:rgba(99,102,184,.12);
 }
 [data-theme="light"] body{
-  background:#EEEEF8;color:#1a1c3a;
+  background:#d7d7ff;color:#1a1c3a;
 }
 
 /* Navbar */
