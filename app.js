@@ -76,9 +76,20 @@ const DB = {
   getBizAppointments(bid) { return this.getAppointments().filter(a=>a.bizId===bid); },
   getActiveAppts(bid)     { return this.getBizAppointments(bid).filter(a=>!a.status.startsWith('cancel')); },
   isTaken(bizId,date,time) {
-    return this.getAppointments().some(a=>
+    const biz = this.getBusinesses().find(b=>b.id===bizId);
+    const capacity = (biz && biz.slotCapacity && biz.slotCapacity > 1) ? biz.slotCapacity : 1;
+    return this.getSlotCount(bizId,date,time) >= capacity;
+  },
+  getSlotCount(bizId,date,time) {
+    return this.getAppointments().filter(a=>
       a.bizId===bizId && a.date===date && a.time===time && !a.status.startsWith('cancel')
-    );
+    ).length;
+  },
+  getSlotRemaining(bizId,date,time) {
+    const biz = this.getBusinesses().find(b=>b.id===bizId);
+    const capacity = (biz && biz.slotCapacity && biz.slotCapacity > 1) ? biz.slotCapacity : 1;
+    const used = this.getSlotCount(bizId,date,time);
+    return Math.max(0, capacity - used);
   },
   getPendingNotifs(uid) {
     return this.getAppointments().filter(a=>
@@ -167,7 +178,8 @@ DB.getBizAvgRating = function(bizId)  {
 };
 
 // ── CAMBIO DE INTERVALO DIFERIDO ──
-// Guarda un cambio de intervalo pendiente para aplicar cuando no haya turnos activos
+// Guarda un cambio de intervalo pendiente. El nuevo intervalo se aplica a partir del
+// primer día laboral DESPUÉS del último día con turnos activos agendados.
 DB.setPendingInterval = function(bizId, newInterval) {
   const pending = this.getPendingIntervals();
   pending[bizId] = { newInterval, requestedAt: new Date().toISOString() };
@@ -184,43 +196,74 @@ DB.clearPendingInterval = function(bizId) {
   delete pending[bizId];
   localStorage.setItem('sx_pending_intervals', JSON.stringify(pending));
 };
-// Devuelve la fecha (key es-AR) más próxima en los próximos 60 días laborales del negocio sin turnos activos
-DB.getFirstFreeDayForInterval = function(bizId) {
+
+// Devuelve la fecha (key es-AR) a partir de la cual debe aplicarse el nuevo intervalo:
+// = primer día laboral del negocio DESPUÉS del último día con turnos activos.
+// Si no hay turnos activos, devuelve null (se puede aplicar ya).
+DB.getIntervalChangeDate = function(bizId) {
   const biz = this.getBusinesses().find(b => b.id === bizId);
   if (!biz) return null;
   const workDays = biz.workDays && biz.workDays.length ? biz.workDays : [0,1,2,3,4,5,6];
   const appts = this.getActiveAppts(bizId);
-  const occupiedDates = new Set(appts.map(a => a.date));
-  const today = new Date();
+  if (!appts.length) return null; // sin turnos: se aplica de inmediato
+
+  // Encontrar el turno más lejano en el tiempo
+  let latestMs = 0;
+  appts.forEach(a => {
+    const [dd, mm, yy] = a.date.split('/');
+    const ms = new Date(+yy, +mm - 1, +dd).getTime();
+    if (ms > latestMs) latestMs = ms;
+  });
+
+  // Primer día laboral DESPUÉS de esa fecha
+  const latestDate = new Date(latestMs);
   for (let i = 1; i <= 90; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    // Solo considerar días que el negocio trabaja
-    if (!workDays.includes(d.getDay())) continue;
-    const key = d.toLocaleDateString('es-AR');
-    // Día laboral sin turnos activos: este es el primer día libre
-    if (!occupiedDates.has(key)) return key;
+    const d = new Date(latestDate);
+    d.setDate(latestDate.getDate() + i);
+    if (workDays.includes(d.getDay())) {
+      return d.toLocaleDateString('es-AR');
+    }
   }
   return null;
 };
-// Verifica si hay algún día laboral futuro sin turnos activos y aplica el intervalo pendiente
-// Solo aplica cuando NINGÚN día laboral con turnos activos queda en el futuro
+
+// Retrocompatibilidad: alias del nombre anterior usado en código heredado
+DB.getFirstFreeDayForInterval = DB.getIntervalChangeDate;
+
+// Aplica permanentemente el intervalo pendiente cuando ya todos los días con
+// turnos del intervalo anterior quedaron en el pasado.
 DB.tryApplyPendingInterval = function(bizId) {
   const pending = this.getPendingInterval(bizId);
   if (!pending) return false;
   const biz = this.getBusinesses().find(b => b.id === bizId);
   if (!biz) return false;
-  const workDays = biz.workDays && biz.workDays.length ? biz.workDays : [0,1,2,3,4,5,6];
-  // Filtrar turnos activos que caigan en días laborales del negocio
-  const activeAppts = this.getActiveAppts(bizId).filter(a => {
-    const [dd, mm, yy] = a.date.split('/');
-    const dow = new Date(+yy, +mm - 1, +dd).getDay();
-    return workDays.includes(dow);
-  });
-  if (activeAppts.length > 0) return false; // aún hay turnos en días laborales
-  // No quedan turnos en días laborales: aplicar el cambio
-  biz.interval = pending.newInterval;
-  this.saveBusiness(biz);
-  this.clearPendingInterval(bizId);
-  return true;
+
+  const activeAppts = this.getActiveAppts(bizId);
+
+  // Sin ningún turno activo → aplicar de inmediato
+  if (!activeAppts.length) {
+    biz.interval = pending.newInterval;
+    this.saveBusiness(biz);
+    this.clearPendingInterval(bizId);
+    return true;
+  }
+
+  // Si la fecha de cambio ya llegó o pasó → aplicar (todos los días con el
+  // intervalo viejo ya transcurrieron)
+  const changeDate = this.getIntervalChangeDate(bizId);
+  if (changeDate) {
+    const [dd, mm, yy] = changeDate.split('/');
+    const changeDateStart = new Date(+yy, +mm - 1, +dd);
+    changeDateStart.setHours(0, 0, 0, 0);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (todayStart >= changeDateStart) {
+      biz.interval = pending.newInterval;
+      this.saveBusiness(biz);
+      this.clearPendingInterval(bizId);
+      return true;
+    }
+  }
+
+  return false; // todavía hay días futuros con turnos del intervalo anterior
 };
