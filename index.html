@@ -18,10 +18,6 @@
                   linear-gradient(160deg, #EEEEF8 0%, #E4E5F4 60%, #D8DAF0 100%);
     }
 
-    a{
-        color: var(--blue-200);
-    }
-
     /* HERO */
     .auth-layout {
       flex: 1;
@@ -180,14 +176,6 @@
     }
     .role-card .role-desc { font-size: 11px; color: var(--blue-200); }
 
-    .checkbox{
-        display: flex;
-        border: none;
-        font-size: 14px;
-        margin:10px;
-        gap:10px;
-    }
-
     /* GLOBAL ERROR */
     .alert {
       padding: 10px 14px;
@@ -241,13 +229,12 @@
   <div class="auth-box">
     <!-- IZQUIERDA -->
     <div class="auth-left">
-      <div class="auth-logo"><img src="saturnox.png" alt="SaturnoX" style="height:60px;width:auto;filter:brightness(1.1);align-items: center;" /></div>
+      <div class="auth-logo"><img id="logoAuth" src="saturnox.png" alt="SaturnoX" style="height:60px;width:auto;filter:brightness(1.1);align-items: center;" /></div>
       <div class="auth-tagline">
         <h1>Reservá tu turno<br><em>en segundos</em></h1>
         <p>El sistema de turnos online para negocios argentinos. Sin llamadas, sin esperas.</p>
       </div>
       <div class="auth-features">
-        <div class="feature-item"><div class="feature-dot"></div>Turnos cada 30 minutos</div>
         <div class="feature-item"><div class="feature-dot"></div>Gestión para negocios</div>
         <div class="feature-item"><div class="feature-dot"></div>Confirmación instantánea</div>
         <div class="feature-item"><div class="feature-dot"></div>Historial de reservas</div>
@@ -257,7 +244,7 @@
     <!-- DERECHA -->
     <div class="auth-right">
       <div style="display:none;margin-bottom:28px;" class="mobile-logo-wrap">
-        <img src="saturnox.png" alt="SaturnoX" style="height:44px;width:auto;filter:brightness(1.1);" />
+        <img id="logoMobile" src="saturnox.png" alt="SaturnoX" style="height:44px;width:auto;filter:brightness(1.1);" />
         <p style="font-size:12px;color:var(--blue-200);margin-top:8px;">El sistema de turnos online para negocios argentinos.</p>
       </div>
       <h2>Bienvenido</h2>
@@ -279,7 +266,7 @@
           <label class="form-label">Contraseña</label>
           <div style="position:relative;">
             <input class="form-input" type="password" id="loginPass" placeholder="••••••••" style="padding-right:44px;" />
-            <button type="button" onclick="togglePassVis('loginPass','eyeLogin')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--blue-200);font-size:16px;padding:4px;line-height:1;" id="eyeLogin">👁️</button>
+            <button type="button" onclick="togglePassVis('loginPass','eyeLogin')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--blue-200);font-size:16px;padding:4px;line-height:1;" id="eyeLogin">🙈</button>
           </div>
         </div>
         <button class="btn primary lg full" onclick="doLogin()" style="margin-top:8px;">
@@ -350,8 +337,7 @@
             <span id="passStrengthLabel" style="font-size:11px;font-weight:500;"></span>
           </div>
         </div>
-        <div class="checkbox"><input onclick="checarEula(this)" type="checkbox" name="eula" id="eula" required> Acepto los <a href="./terminos.html">terminos y condiciones</a>.</div> 
-        <button class="btn primary lg full" onclick="doRegister()" disabled="true" id="registerButton" style="margin-top:8px;">
+        <button class="btn primary lg full" onclick="doRegister()" style="margin-top:8px;">
           Crear cuenta
         </button>
       </div>
@@ -362,10 +348,15 @@
 <script src="app.js"></script>
 <script>
   // ── TEMA ──
+  function updateLogo(theme) {
+    const src = theme === 'light' ? 'saturnoxdark.png' : 'saturnox.png';
+    document.querySelectorAll('#logoAuth,#logoMobile').forEach(el => el && (el.src = src));
+  }
   function initTheme() {
     const t = localStorage.getItem('sx_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', t);
     updateThemeBtn(t);
+    updateLogo(t);
   }
   function toggleTheme() {
     const cur = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -373,20 +364,13 @@
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('sx_theme', next);
     updateThemeBtn(next);
+    updateLogo(next);
   }
   function updateThemeBtn(t) {
     const icon = document.getElementById('themeIcon');
     if (icon) icon.textContent = t === 'dark' ? '☀️' : '🌙';
   }
   initTheme();
-
-  function checarEula(son) {
-    let Rbutton = document.getElementById("registerButton");
-    if (son.checked) {
-        return Rbutton.disabled=false
-    }
-    return Rbutton.disabled=true
-  }
 
   // ── INVITADO ──
   function enterAsGuest() {
@@ -408,7 +392,7 @@
     const btn = document.getElementById(btnId);
     const isPass = inp.type === 'password';
     inp.type = isPass ? 'text' : 'password';
-    btn.textContent = isPass ? '🙈' : '👁️';
+    btn.textContent = isPass ? '🙉' : '🙈';
   }
 
   function switchTab(tab) {
