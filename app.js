@@ -75,20 +75,28 @@ const DB = {
   getUserAppointments(uid){ return this.getAppointments().filter(a=>a.userId===uid); },
   getBizAppointments(bid) { return this.getAppointments().filter(a=>a.bizId===bid); },
   getActiveAppts(bid)     { return this.getBizAppointments(bid).filter(a=>!a.status.startsWith('cancel')); },
-  isTaken(bizId,date,time) {
-    const biz = this.getBusinesses().find(b=>b.id===bizId);
-    const capacity = (biz && biz.slotCapacity && biz.slotCapacity > 1) ? biz.slotCapacity : 1;
-    return this.getSlotCount(bizId,date,time) >= capacity;
+  isTaken(bizId,date,time,serviceName=null) {
+    const capacity = this.getSlotCapacity(bizId,serviceName);
+    return this.getSlotCount(bizId,date,time,serviceName) >= capacity;
   },
-  getSlotCount(bizId,date,time) {
+  getSlotCapacity(bizId,serviceName=null) {
+    const biz = this.getBusinesses().find(b=>b.id===bizId);
+    if (serviceName) {
+      const services = this.getBizServices(bizId);
+      const svc = services.find(s=>s.name===serviceName);
+      if (svc && svc.capacity && svc.capacity > 1) return svc.capacity;
+    }
+    return (biz && biz.slotCapacity && biz.slotCapacity > 1) ? biz.slotCapacity : 1;
+  },
+  getSlotCount(bizId,date,time,serviceName=null) {
     return this.getAppointments().filter(a=>
-      a.bizId===bizId && a.date===date && a.time===time && !a.status.startsWith('cancel')
+      a.bizId===bizId && a.date===date && a.time===time && !a.status.startsWith('cancel') &&
+      (serviceName==null || a.serviceName===serviceName)
     ).length;
   },
-  getSlotRemaining(bizId,date,time) {
-    const biz = this.getBusinesses().find(b=>b.id===bizId);
-    const capacity = (biz && biz.slotCapacity && biz.slotCapacity > 1) ? biz.slotCapacity : 1;
-    const used = this.getSlotCount(bizId,date,time);
+  getSlotRemaining(bizId,date,time,serviceName=null) {
+    const capacity = this.getSlotCapacity(bizId,serviceName);
+    const used = this.getSlotCount(bizId,date,time,serviceName);
     return Math.max(0, capacity - used);
   },
   getPendingNotifs(uid) {
@@ -125,8 +133,21 @@ const DB = {
     };
   },
   generateSlots(start,end,interval=30) {
-    const s=[]; let [sh,sm]=start.split(':').map(Number); const [eh,em]=end.split(':').map(Number);
-    while(sh*60+sm<eh*60+em){ s.push(`${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`); sm+=interval; while(sm>=60){sm-=60;sh++;} }
+    if(!start||!end||interval<=0) return [];
+    const s=[];
+    let [sh,sm]=start.split(':').map(Number);
+    let [eh,em]=end.split(':').map(Number);
+    let startMin=sh*60+sm, endMin=eh*60+em;
+    // Horario nocturno: el cierre es del día siguiente (ej. 09:00 → 02:00)
+    // Si son exactamente iguales no generamos nada (evita loop de 24h)
+    if(endMin===startMin) return [];
+    if(endMin<startMin) endMin+=1440;
+    let cur=startMin, iters=0;
+    while(cur<endMin && iters<1440){
+      const hh=Math.floor(cur/60)%24, mm=cur%60;
+      s.push(`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`);
+      cur+=interval; iters++;
+    }
     return s;
   },
   isCancellable(appt) {
@@ -177,58 +198,196 @@ DB.getBizAvgRating = function(bizId)  {
   return rs.length ? (rs.reduce((s,r)=>s+r.rating,0)/rs.length).toFixed(1) : null;
 };
 
-// ── CAMBIO DE INTERVALO DIFERIDO ──
-// Guarda un cambio de intervalo pendiente. El nuevo intervalo se aplica a partir del
-// primer día laboral DESPUÉS del último día con turnos activos agendados.
-DB.setPendingInterval = function(bizId, newInterval) {
-  const pending = this.getPendingIntervals();
-  pending[bizId] = { newInterval, requestedAt: new Date().toISOString() };
-  localStorage.setItem('sx_pending_intervals', JSON.stringify(pending));
+// ══════════════════════════════════════════════════════════════════
+//  CAMBIOS DE INTERVALO DIFERIDOS
+//
+//  Cuando se cambia el intervalo (del negocio o de un servicio) y
+//  ya hay turnos reservados, el cambio NO se aplica de inmediato.
+//  Se guarda como "pendiente" y se aplica el primer día laboral
+//  futuro que no tenga ningún turno reservado.
+//
+//  Clave de almacenamiento:
+//    negocio  → "bizId"
+//    servicio → "bizId::svcName"
+//
+//  Cada entrada guarda:
+//    { newInterval, oldInterval, changeDate, requestedAt }
+//    changeDate = fecha (key es-AR) del primer día libre encontrado
+// ══════════════════════════════════════════════════════════════════
+
+// Devuelve todos los pendientes (objeto clave→datos)
+DB.getAllPendingIntervals = function() {
+  return JSON.parse(localStorage.getItem('sx_pending_iv') || '{}');
 };
-DB.getPendingIntervals = function() {
-  return JSON.parse(localStorage.getItem('sx_pending_intervals') || '{}');
-};
-DB.getPendingInterval = function(bizId) {
-  return this.getPendingIntervals()[bizId] || null;
-};
-DB.clearPendingInterval = function(bizId) {
-  const pending = this.getPendingIntervals();
-  delete pending[bizId];
-  localStorage.setItem('sx_pending_intervals', JSON.stringify(pending));
+DB._savePendingIntervals = function(all) {
+  localStorage.setItem('sx_pending_iv', JSON.stringify(all));
 };
 
-// Devuelve la fecha (key es-AR) a partir de la cual debe aplicarse el nuevo intervalo:
-// = primer día laboral del negocio DESPUÉS del último día con turnos activos.
-// Si no hay turnos activos, devuelve null (se puede aplicar ya).
-DB.getIntervalChangeDate = function(bizId) {
+// Lee el pendiente de una clave específica (bizId o "bizId::svcName")
+DB.getPendingIv = function(key) {
+  return this.getAllPendingIntervals()[key] || null;
+};
+
+// Guarda un pendiente. Calcula la changeDate automáticamente.
+// scope = 'biz' | 'svc' | 'staff'
+// svcName: nombre del servicio  (o null)
+// staffId: id del staff         (o null)
+DB.setPendingIv = function(bizId, newInterval, oldInterval, svcName, staffId) {
+  const key = staffId
+    ? `${bizId}::staff::${staffId}`
+    : svcName ? `${bizId}::${svcName}` : String(bizId);
+  const changeDate = this._findFirstFreeDay(bizId, svcName || null, staffId || null);
+  const all = this.getAllPendingIntervals();
+  all[key] = {
+    newInterval,
+    oldInterval,
+    changeDate,
+    svcName:  svcName  || null,
+    staffId:  staffId  || null,
+    requestedAt: new Date().toISOString(),
+    dismissed: false,
+  };
+  this._savePendingIntervals(all);
+  return all[key];
+};
+
+// Elimina el pendiente de una clave
+DB.clearPendingIv = function(bizId, svcName, staffId) {
+  const key = staffId
+    ? `${bizId}::staff::${staffId}`
+    : svcName ? `${bizId}::${svcName}` : String(bizId);
+  const all = this.getAllPendingIntervals();
+  delete all[key];
+  this._savePendingIntervals(all);
+};
+
+// Marca como visto (el negocio hizo dismiss del banner)
+DB.dismissPendingIv = function(bizId, svcName, staffId) {
+  const key = staffId
+    ? `${bizId}::staff::${staffId}`
+    : svcName ? `${bizId}::${svcName}` : String(bizId);
+  const all = this.getAllPendingIntervals();
+  if (all[key]) all[key].dismissed = true;
+  this._savePendingIntervals(all);
+};
+
+// Devuelve todos los pendientes no descartados de un negocio
+DB.getPendingIvList = function(bizId) {
+  const all = this.getAllPendingIntervals();
+  return Object.entries(all)
+    .filter(([k]) => k === String(bizId) || k.startsWith(`${bizId}::`))
+    .map(([k, v]) => ({ key: k, ...v }));
+};
+
+// Devuelve todos los pendientes no descartados de un negocio (solo los no dismissed)
+DB.getUndismissedPendingIvList = function(bizId) {
+  return this.getPendingIvList(bizId).filter(p => !p.dismissed);
+};
+
+// Calcula la changeDate: primer día laboral futuro sin turnos
+// svcName=null, staffId=null → todos los turnos del negocio
+// svcName='X'               → solo turnos de ese servicio
+// staffId='X'               → solo turnos de esa persona
+DB._findFirstFreeDay = function(bizId, svcName, staffId) {
   const biz = this.getBusinesses().find(b => b.id === bizId);
-  if (!biz) return null;
-  const workDays = biz.workDays && biz.workDays.length ? biz.workDays : [0,1,2,3,4,5,6];
-  const appts = this.getActiveAppts(bizId);
-  if (!appts.length) return null; // sin turnos: se aplica de inmediato
+  const workDays = (biz && biz.workDays && biz.workDays.length)
+    ? biz.workDays
+    : [0,1,2,3,4,5,6];
 
-  // Encontrar el turno más lejano en el tiempo
+  let appts = this.getActiveAppts(bizId);
+  if (staffId)  appts = appts.filter(a => a.staffId  === staffId);
+  else if (svcName) appts = appts.filter(a => a.serviceName === svcName);
+  if (!appts.length) return null; // sin turnos → aplica ya
+
+  const occupied = new Set(appts.map(a => a.date));
+
+  // Iterar desde mañana hasta 90 días
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  for (let i = 1; i <= 90; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    if (!workDays.includes(d.getDay())) continue;
+    const key = d.toLocaleDateString('es-AR');
+    if (!occupied.has(key)) return key;
+  }
+
+  // Fallback: primer día laboral después del último turno reservado
   let latestMs = 0;
   appts.forEach(a => {
-    const [dd, mm, yy] = a.date.split('/');
-    const ms = new Date(+yy, +mm - 1, +dd).getTime();
+    const [dd,mm,yy] = a.date.split('/');
+    const ms = new Date(+yy,+mm-1,+dd).getTime();
     if (ms > latestMs) latestMs = ms;
   });
-
-  // Primer día laboral DESPUÉS de esa fecha
-  const latestDate = new Date(latestMs);
+  const last = new Date(latestMs);
   for (let i = 1; i <= 90; i++) {
-    const d = new Date(latestDate);
-    d.setDate(latestDate.getDate() + i);
-    if (workDays.includes(d.getDay())) {
-      return d.toLocaleDateString('es-AR');
-    }
+    const d = new Date(last);
+    d.setDate(last.getDate() + i);
+    if (workDays.includes(d.getDay())) return d.toLocaleDateString('es-AR');
   }
   return null;
 };
 
-// Retrocompatibilidad: alias del nombre anterior usado en código heredado
+// Devuelve el intervalo efectivo para una fecha dada.
+// staffId: si se pasa, busca el pendiente del staff
+// svcName: si se pasa, busca el pendiente del servicio
+// Si no hay pendiente devuelve null (usar el valor guardado normalmente).
+DB.getEffectiveInterval = function(bizId, date, svcName, staffId) {
+  const key = staffId
+    ? `${bizId}::staff::${staffId}`
+    : svcName ? `${bizId}::${svcName}` : String(bizId);
+  const p = this.getAllPendingIntervals()[key] || null;
+  if (!p) return null;
+
+  if (!p.changeDate) {
+    this.clearPendingIv(bizId, svcName || null, staffId || null);
+    return p.newInterval;
+  }
+
+  const [dd,mm,yy] = p.changeDate.split('/');
+  const changeMs = new Date(+yy,+mm-1,+dd).getTime();
+
+  let dateMs;
+  if (date) {
+    const [d2,m2,y2] = date.split('/');
+    dateMs = new Date(+y2,+m2-1,+d2).getTime();
+  } else {
+    const t = new Date(); t.setHours(0,0,0,0);
+    dateMs = t.getTime();
+  }
+
+  if (dateMs >= changeMs) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    if (today.getTime() >= changeMs) {
+      this.clearPendingIv(bizId, svcName || null, staffId || null);
+    }
+    return p.newInterval;
+  }
+
+  return p.oldInterval;
+};
+
+// Compatibilidad con código anterior que llama DB.getPendingInterval(bizId)
+DB.getPendingInterval  = function(bizId)       { return this.getAllPendingIntervals()[String(bizId)] || null; };
+DB.setPendingInterval  = function(bizId, newIv) { /* usar setPendingIv */ };
+DB.clearPendingInterval = function(bizId)       { this.clearPendingIv(bizId, null); };
+DB.getIntervalChangeDate = function(bizId)      {
+  const p = this.getAllPendingIntervals()[String(bizId)];
+  return p ? p.changeDate : null;
+};
 DB.getFirstFreeDayForInterval = DB.getIntervalChangeDate;
+DB.getPendingIntervals = function()             { return this.getAllPendingIntervals(); };
+DB.tryApplyPendingInterval = function(bizId)    { return false; }; // ya no necesario, getEffectiveInterval lo hace
+
+
+
+// ── SERVICIOS ──
+// Un negocio puede tener múltiples servicios, cada uno con nombre, descripción,
+// precio (opcional) y duración (opcional). Si no hay servicios definidos, se
+// toma el precio global del negocio (biz.price) como antes.
+DB.getBizServices  = function(bizId)    { return JSON.parse(localStorage.getItem('sx_services_'+bizId)||'[]'); };
+DB.saveBizServices = function(bizId, services) { localStorage.setItem('sx_services_'+bizId, JSON.stringify(services)); };
+DB.deleteBizServices = function(bizId)  { localStorage.removeItem('sx_services_'+bizId); };
 
 // Aplica permanentemente el intervalo pendiente cuando ya todos los días con
 // turnos del intervalo anterior quedaron en el pasado.
@@ -266,4 +425,44 @@ DB.tryApplyPendingInterval = function(bizId) {
   }
 
   return false; // todavía hay días futuros con turnos del intervalo anterior
+};
+
+// ── STAFF (PERSONAS QUE ATIENDEN) ──
+// Cada negocio puede tener múltiples "profesionales" o personas que atienden.
+// Cada staff tiene: id, bizId, name, role (cargo), icon, color,
+//   workDays (array de ints), start, end, start2, end2, interval (min),
+//   serviceIds (array de nombres de servicios que atiende)
+DB.getBizStaff    = function(bizId)  { return JSON.parse(localStorage.getItem('sx_staff_'+bizId)||'[]'); };
+DB.saveBizStaff   = function(bizId, staff) { localStorage.setItem('sx_staff_'+bizId, JSON.stringify(staff)); };
+DB.saveStaffMember = function(bizId, member) {
+  const list = this.getBizStaff(bizId);
+  const idx = list.findIndex(s => s.id === member.id);
+  if (idx >= 0) list[idx] = member; else list.push(member);
+  this.saveBizStaff(bizId, list);
+};
+DB.deleteStaffMember = function(bizId, staffId) {
+  const list = this.getBizStaff(bizId).filter(s => s.id !== staffId);
+  this.saveBizStaff(bizId, list);
+  // Limpiar turnos asociados (no cancelar, solo limpiar el staffId)
+  const appts = this.getAppointments();
+  appts.forEach(a => { if (a.staffId === staffId) { delete a.staffId; delete a.staffName; } });
+  localStorage.setItem('sx_appointments', JSON.stringify(appts));
+};
+DB.getStaffMember = function(bizId, staffId) {
+  return this.getBizStaff(bizId).find(s => s.id === staffId) || null;
+};
+
+// Slots ocupados para un staff específico
+DB.getStaffSlotCount = function(bizId, staffId, date, time) {
+  return this.getAppointments().filter(a =>
+    a.bizId === bizId && a.staffId === staffId &&
+    a.date === date && a.time === time &&
+    !a.status.startsWith('cancel')
+  ).length;
+};
+DB.isStaffTaken = function(bizId, staffId, date, time, capacity) {
+  return this.getStaffSlotCount(bizId, staffId, date, time) >= (capacity || 1);
+};
+DB.getStaffSlotRemaining = function(bizId, staffId, date, time, capacity) {
+  return Math.max(0, (capacity || 1) - this.getStaffSlotCount(bizId, staffId, date, time));
 };

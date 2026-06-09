@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title> – Mis Turnos</title>
+  <title>SaturnoX – Mis Turnos</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
     body { background: linear-gradient(160deg, var(--navy) 0%, var(--navy2) 60%, var(--navy3) 100%); }
@@ -104,6 +104,44 @@
     .slot:disabled { opacity:.28;cursor:not-allowed;text-decoration:line-through; }
     .slot.active { background:var(--blue-600);border-color:var(--blue-400);color:var(--blue-50); }
     .no-slots { color:var(--blue-200);font-size:13px;padding:12px 0; }
+
+    /* SERVICES */
+    .svc-btn {
+      display:flex;flex-direction:column;padding:10px 16px;border-radius:var(--r-md);
+      border:1px solid rgba(99,102,184,.22);background:transparent;cursor:pointer;
+      font-family:var(--font-body);text-align:left;transition:all .2s;min-width:140px;
+    }
+    .svc-btn:hover { background:rgba(99,102,184,.1);border-color:rgba(99,102,184,.45); }
+    .svc-btn.active { background:rgba(57,60,128,.22);border-color:var(--blue-400); }
+    .svc-btn-name { font-size:13px;font-weight:500;color:var(--blue-50); }
+    .svc-btn-desc { font-size:11px;color:var(--blue-200);margin-top:2px; }
+    .svc-btn-price { font-size:12px;font-weight:600;color:var(--green);margin-top:4px; }
+
+    /* STAFF PICKER */
+    .staff-btn {
+      display:flex;flex-direction:column;align-items:center;padding:12px 16px;border-radius:var(--r-md);
+      border:1px solid rgba(99,102,184,.22);background:transparent;cursor:pointer;
+      font-family:var(--font-body);text-align:center;transition:all .22s;min-width:100px;
+      position:relative;gap:6px;
+    }
+    .staff-btn:hover { background:rgba(99,102,184,.1);border-color:rgba(99,102,184,.45);transform:translateY(-2px); }
+    .staff-btn.active { background:rgba(57,60,128,.22);border-color:var(--blue-400);box-shadow:0 0 0 2px rgba(99,102,184,.2); }
+    .staff-btn-avatar {
+      width:44px;height:44px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:22px;border:2px solid rgba(99,102,184,.25);
+      background:rgba(99,102,184,.1);flex-shrink:0;
+    }
+    .staff-btn.active .staff-btn-avatar { border-color:var(--blue-400); }
+    .staff-btn-name { font-size:12px;font-weight:600;color:var(--blue-50); }
+    .staff-btn-role { font-size:10px;color:var(--blue-200); }
+    .staff-btn-any {
+      display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:var(--r-md);
+      border:1px solid rgba(99,102,184,.2);background:transparent;cursor:pointer;
+      font-family:var(--font-body);font-size:13px;color:var(--blue-200);transition:all .2s;
+    }
+    .staff-btn-any:hover { background:rgba(99,102,184,.08);color:var(--blue-50); }
+    .staff-btn-any.active { background:rgba(57,60,128,.15);border-color:var(--blue-400);color:var(--blue-50); }
 
     /* CONFIRM BAR */
     .confirm-bar { display:none;align-items:center;gap:14px; padding:16px 20px; background:rgba(57,60,128,.15); border:1px solid rgba(99,102,184,.28);border-radius:var(--r-md); }
@@ -321,7 +359,19 @@
       <div class="sub-label">Elegí el día</div>
       <div class="dates-row" id="datePicker"></div>
 
-      <div class="slots-wrap">
+      <!-- SELECTOR DE SERVICIO -->
+      <div id="servicePickerWrap" style="display:none;margin-bottom:20px;">
+        <div class="sub-label">Elegí el servicio</div>
+        <div id="servicePickerGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+
+      <!-- SELECTOR DE PROFESIONAL / STAFF -->
+      <div id="staffPickerWrap" style="display:none;margin-bottom:20px;">
+        <div class="sub-label">¿Con quién querés ser atendido/a?</div>
+        <div id="staffPickerGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+
+      <div class="slots-wrap" id="slotsWrap">
         <div class="sub-label" id="slotsLabel">Horarios</div>
         <div class="slots-grid" id="slotsGrid"></div>
       </div>
@@ -502,7 +552,7 @@
 
 <script src="app.js"></script>
 <script>
-  let currentUser, selectedBiz=null, selectedDate=null, selectedSlot=null, currentCat='all', apptFilter='all';
+  let currentUser, selectedBiz=null, selectedDate=null, selectedSlot=null, selectedService=null, selectedStaff=null, staffChosen=false, currentCat='all', apptFilter='all';
 
   // ── TEMA ──
   function updateLogo(theme) {
@@ -622,18 +672,34 @@
     }
     grid.innerHTML = list.map(b => {
       const avg = DB.getBizAvgRating(b.id);
+      const services = DB.getBizServices(b.id);
+      const hasServices = services.length > 0;
+      // Si hay servicios, mostrar el rango de precios
+      let priceTag = '';
+      if (hasServices) {
+        const prices = services.filter(s => s.price != null).map(s => s.price);
+        if (prices.length) {
+          const min = Math.min(...prices), max = Math.max(...prices);
+          priceTag = min === max
+            ? `<span class="badge" style="color:var(--green);border-color:var(--green-bd);background:var(--green-bg);">$ ${Number(min).toLocaleString('es-AR')}</span>`
+            : `<span class="badge" style="color:var(--green);border-color:var(--green-bd);background:var(--green-bg);">$ ${Number(min).toLocaleString('es-AR')} – ${Number(max).toLocaleString('es-AR')}</span>`;
+        }
+      } else if (b.price != null) {
+        priceTag = `<span class="badge" style="color:var(--green);border-color:var(--green-bd);background:var(--green-bg);">$\u00a0${Number(b.price).toLocaleString('es-AR')}</span>`;
+      }
       return `
       <div class="biz-card ${selectedBiz && selectedBiz.id===b.id?'selected':''}" onclick="selectBiz(${b.id})">
         <div class="biz-icon">${b.icon||'🏪'}</div>
         <div class="biz-name">${b.name}</div>
         <div class="biz-type">${b.type}${b.address?' · '+b.address:''}</div>
         ${b.desc ? `<div style="font-size:14px;color:var(--amber);margin-bottom:8px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${b.desc}</div>` : ''}
+        ${hasServices ? `<div style="font-size:11px;color:var(--blue-200);margin-bottom:6px;">🛎 ${services.length} servicio${services.length>1?'s':''}: ${services.map(s=>s.name).slice(0,2).join(', ')}${services.length>2?'…':''}</div>` : ''}
         <div class="biz-meta">
           <span class="badge green">Disponible</span>
-          <span class="badge">${b.startTime}–${b.endTime}</span>
-          ${b.startTime2 && b.endTime2 ? `<span class="badge">${b.startTime2}–${b.endTime2}</span>` : ''}
+          ${!hasServices ? `<span class="badge">${b.startTime}–${b.endTime}</span>` : ''}
+          ${!hasServices && b.startTime2 && b.endTime2 ? `<span class="badge">${b.startTime2}–${b.endTime2}</span>` : ''}
           ${avg ? `<span class="badge" style="color:#f5c842;border-color:rgba(245,200,66,.25);background:rgba(245,200,66,.08);">⭐ ${avg}</span>` : ''}
-          ${b.price != null ? `<span class="badge" style="color:var(--green);border-color:var(--green-bd);background:var(--green-bg);">$\u00a0${Number(b.price).toLocaleString('es-AR')}</span>` : ''}
+          ${priceTag}
         </div>
       </div>
     `}).join('');
@@ -654,11 +720,16 @@
 
   /* ── SELECT BIZ ── */
   function selectBiz(id) {
+    // Si se hace click en el mismo negocio ya abierto, cerrar el panel
+    if (selectedBiz && selectedBiz.id === id && document.getElementById('bookingPanel').classList.contains('visible')) {
+      closePanel(); return;
+    }
     selectedBiz = DB.getBusinesses().find(b => b.id === id);
-    selectedDate = null; selectedSlot = null;
+    selectedDate = null; selectedSlot = null; selectedService = null; selectedStaff = null; staffChosen = false;
 
     document.getElementById('panelName').textContent = selectedBiz.name;
-    document.getElementById('panelSub').textContent  = selectedBiz.type + (selectedBiz.address ? '  ·  '+selectedBiz.address : '') + '  ·  '+selectedBiz.startTime+' – '+selectedBiz.endTime + (selectedBiz.startTime2 && selectedBiz.endTime2 ? '  |  '+selectedBiz.startTime2+' – '+selectedBiz.endTime2 : '');
+    const _hasSvc = DB.getBizServices(selectedBiz.id).length > 0;
+    document.getElementById('panelSub').textContent  = selectedBiz.type + (selectedBiz.address ? '  ·  '+selectedBiz.address : '') + (!_hasSvc ? '  ·  '+selectedBiz.startTime+' – '+selectedBiz.endTime + (selectedBiz.startTime2 && selectedBiz.endTime2 ? '  |  '+selectedBiz.startTime2+' – '+selectedBiz.endTime2 : '') : '');
     // Teléfono de contacto
     const phoneEl = document.getElementById('panelPhone');
     if (selectedBiz.phone) {
@@ -687,11 +758,32 @@
     const firstWork = dates.find(d => selectedBiz.workDays ? selectedBiz.workDays.includes(d.weekday) : true);
     if (firstWork) {
       selectedDate = { key: firstWork.key, label: `${firstWork.dow} ${firstWork.day} de ${firstWork.month}` };
-      renderSlots();
+    }
+
+    // Servicios del negocio — si hay servicios, los slots se ocultan hasta elegir uno
+    renderServicePicker();
+    renderStaffPicker();
+    const hasServices = DB.getBizServices(selectedBiz.id).length > 0;
+    const availableStaff = DB.getBizStaff(selectedBiz.id);
+    const slotsWrap = document.getElementById('slotsWrap');
+    if (hasServices) {
+      // Slots ocultos hasta elegir servicio (y luego staff si aplica)
+      slotsWrap.style.display = 'none';
+      document.getElementById('slotsGrid').innerHTML = '';
+    } else if (availableStaff.length > 0 && !staffChosen) {
+      // No hay servicios pero sí staff — ocultar slots hasta elegir profesional
+      slotsWrap.style.display = 'none';
+    } else {
+      slotsWrap.style.display = 'block';
+      if (firstWork) renderSlots();
     }
 
     const panel = document.getElementById('bookingPanel');
     panel.classList.add('visible');
+
+    // ── Aviso de límite: 3 turnos por negocio hoy ─────────────────
+    _refreshDayLimitBanner();
+
     setTimeout(() => panel.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
     renderBiz();
   }
@@ -701,34 +793,206 @@
     el.classList.add('active');
     selectedDate = { key, label };
     selectedSlot = null;
-    renderSlots();
+    const hasServices = selectedBiz && DB.getBizServices(selectedBiz.id).length > 0;
+    const availableStaff = _getAvailableStaff();
+    const needsStaff = availableStaff.length > 0 && !staffChosen;
+    if ((!hasServices || selectedService) && !needsStaff) {
+      document.getElementById('slotsWrap').style.display = 'block';
+      renderSlots();
+    } else if (selectedService && needsStaff) {
+      renderStaffPicker();
+    } else if (!hasServices && !needsStaff) {
+      document.getElementById('slotsWrap').style.display = 'block';
+      renderSlots();
+    }
     document.getElementById('confirmBar').classList.remove('visible');
+    _refreshDayLimitBanner();
+  }
+
+  // Turnos reservados HOY por este usuario en este negocio (sin importar para qué fecha son)
+  function _countTodayForBiz(bizId) {
+    const todayStr = new Date().toLocaleDateString('es-AR');
+    return DB.getUserAppointments(currentUser.id).filter(a =>
+      a.status === 'confirmed' &&
+      String(a.bizId) === String(bizId) &&
+      new Date(a.createdAt).toLocaleDateString('es-AR') === todayStr
+    ).length;
+  }
+
+  function _refreshDayLimitBanner() {
+    const MAX = 3;
+    const panel = document.getElementById('bookingPanel');
+    if (!panel || !panel.classList.contains('visible') || !selectedBiz) return;
+    const count = _countTodayForBiz(selectedBiz.id);
+    let limitBanner = document.getElementById('apptLimitBanner');
+    if (count >= MAX) {
+      if (!limitBanner) {
+        limitBanner = document.createElement('div');
+        limitBanner.id = 'apptLimitBanner';
+        limitBanner.style.cssText = 'background:rgba(226,75,74,.08);border:1px solid rgba(226,75,74,.28);border-radius:var(--r-md);padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--red);display:flex;align-items:center;gap:10px;animation:slideDown .25s ease;';
+        limitBanner.innerHTML = `<span style="font-size:18px;">🔒</span><span>Ya reservaste <strong>${MAX} turnos hoy</strong> en este negocio. Volvé mañana o cancelá uno.</span>`;
+        panel.insertBefore(limitBanner, panel.firstChild);
+      }
+    } else if (limitBanner) {
+      limitBanner.remove();
+    }
+  }
+
+  function renderServicePicker() {
+    const wrap = document.getElementById('servicePickerWrap');
+    const grid = document.getElementById('servicePickerGrid');
+    if (!selectedBiz) { wrap.style.display = 'none'; return; }
+    const services = DB.getBizServices(selectedBiz.id);
+    if (!services.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    grid.innerHTML = services.map((s, i) => {
+      const isActive = selectedService && selectedService.name === s.name;
+      // Build schedule/duration label
+      let scheduleLabel = '';
+      if (s.start && s.end) scheduleLabel += `🕐 ${s.start} – ${s.end}`;
+      if (s.interval != null) {
+        const iv = s.interval;
+        const ivStr = iv < 60 ? `${iv} min` : iv % 60 === 0 ? `${iv/60} h` : `${Math.floor(iv/60)} h ${iv%60} min`;
+        scheduleLabel += (scheduleLabel ? '  ·  ' : '') + `⏱ ${ivStr}`;
+      }
+      return `<button class="svc-btn ${isActive ? 'active' : ''}" onclick="pickService(${i})">
+        <span class="svc-btn-name">${s.name}</span>
+        ${s.desc ? `<span class="svc-btn-desc">${s.desc}</span>` : ''}
+        ${scheduleLabel ? `<span class="svc-btn-desc" style="color:var(--blue-400);margin-top:3px;">${scheduleLabel}</span>` : ''}
+        ${s.price != null ? `<span class="svc-btn-price">$ ${Number(s.price).toLocaleString('es-AR')}</span>` : '<span class="svc-btn-desc" style="color:var(--blue-200);">Sin precio definido</span>'}
+      </button>`;
+    }).join('');
+  }
+
+  function pickService(idx) {
+    const services = DB.getBizServices(selectedBiz.id);
+    selectedService = services[idx] || null;
+    selectedSlot = null;
+    selectedStaff = null;
+    staffChosen = false;
+    document.getElementById('confirmBar').classList.remove('visible');
+    renderServicePicker();
+    renderStaffPicker();
+    // Mostrar slots: solo si no hay staff disponible o ya se eligió
+    const staff = _getAvailableStaff();
+    const slotsWrap = document.getElementById('slotsWrap');
+    if (staff.length > 0 && !staffChosen) {
+      slotsWrap.style.display = 'none';
+    } else {
+      slotsWrap.style.display = 'block';
+      renderSlots();
+    }
+  }
+
+  // Returns staff visible for the current biz+service combo
+  function _getAvailableStaff() {
+    if (!selectedBiz) return [];
+    const allStaff = DB.getBizStaff(selectedBiz.id);
+    if (!allStaff.length) return [];
+    if (!selectedService) return allStaff;
+    // Filter: staff must have the service in their list, OR have empty list (= atiende todo)
+    return allStaff.filter(s =>
+      !s.services || s.services.length === 0 || s.services.includes(selectedService.name)
+    );
+  }
+
+  function renderStaffPicker() {
+    const wrap = document.getElementById('staffPickerWrap');
+    const grid = document.getElementById('staffPickerGrid');
+    if (!selectedBiz) { wrap.style.display = 'none'; return; }
+    const staff = _getAvailableStaff();
+    if (!staff.length) { wrap.style.display = 'none'; return; }
+
+    // If services need to be picked first, wait
+    const hasServices = DB.getBizServices(selectedBiz.id).length > 0;
+    if (hasServices && !selectedService) { wrap.style.display = 'none'; return; }
+
+    wrap.style.display = 'block';
+    const anyActive = staffChosen && selectedStaff === null;
+    grid.innerHTML =
+      // "Sin preferencia" option
+      `<button class="staff-btn-any ${anyActive ? 'active' : ''}" onclick="pickStaff(-1)">
+        🎲 Sin preferencia
+      </button>` +
+      staff.map((s, i) => {
+        const isActive = selectedStaff && selectedStaff.id === s.id;
+        return `<button class="staff-btn ${isActive ? 'active' : ''}" onclick="pickStaff(${i})">
+          <div class="staff-btn-avatar" style="background:${(s.color||'#6366b8')}22;border-color:${(s.color||'#6366b8')}55;">${s.icon||'👤'}</div>
+          <span class="staff-btn-name">${s.name}</span>
+          ${s.role ? `<span class="staff-btn-role">${s.role}</span>` : ''}
+        </button>`;
+      }).join('');
+  }
+
+  function pickStaff(idx) {
+    const staff = _getAvailableStaff();
+    selectedStaff = (idx === -1 || idx === null) ? null : (staff[idx] || null);
+    staffChosen = true;
+    selectedSlot = null;
+    document.getElementById('confirmBar').classList.remove('visible');
+    renderStaffPicker();
+    // Always show slots once staff choice is made
+    const slotsWrap = document.getElementById('slotsWrap');
+    slotsWrap.style.display = 'block';
+    renderSlots();
   }
 
   function renderSlots() {
     if (!selectedBiz || !selectedDate) return;
 
-    // Intervalo efectivo para el día seleccionado:
-    // Si hay cambio pendiente y el día seleccionado >= fecha de cambio
-    // (= 1er día laboral después del último turno agendado), usar el nuevo intervalo.
-    let effectiveInterval = selectedBiz.interval || 30;
-    const pending = DB.getPendingInterval(selectedBiz.id);
-    if (pending) {
-      const changeDate = DB.getIntervalChangeDate(selectedBiz.id);
-      if (!changeDate) {
-        // sin turnos activos → ya rige el nuevo intervalo
-        effectiveInterval = pending.newInterval;
-      } else {
-        const toMs = key => { const [dd,mm,yy] = key.split('/'); return new Date(+yy,+mm-1,+dd).getTime(); };
-        if (toMs(selectedDate.key) >= toMs(changeDate)) {
-          effectiveInterval = pending.newInterval;
-        }
+    // Si hay staff disponibles y no se eligió ninguno todavía, no mostrar slots
+    const availableStaff = _getAvailableStaff();
+    const hasServices = DB.getBizServices(selectedBiz.id).length > 0;
+    if (availableStaff.length > 0 && !staffChosen) {
+      document.getElementById('slotsGrid').innerHTML = '<p class="no-slots">Primero elegí con quién querés ser atendido/a.</p>';
+      return;
+    }
+
+    // Intervalo efectivo: staff pendiente → staff propio → servicio (con pendiente) → negocio (con pendiente)
+    let effectiveInterval = null;
+    if (selectedStaff) {
+      effectiveInterval = DB.getEffectiveInterval(selectedBiz.id, selectedDate.key, null, selectedStaff.id)
+        ?? (selectedStaff.interval != null ? selectedStaff.interval : null);
+    }
+    if (effectiveInterval == null && selectedService) {
+      effectiveInterval = DB.getEffectiveInterval(selectedBiz.id, selectedDate.key, selectedService.name)
+        ?? (selectedService.interval != null ? selectedService.interval : null);
+    }
+    if (effectiveInterval == null) {
+      effectiveInterval = DB.getEffectiveInterval(selectedBiz.id, selectedDate.key, null)
+        ?? (selectedBiz.interval || 30);
+    }
+
+    // Horario efectivo: staff → servicio → negocio
+    const staffStart  = selectedStaff && selectedStaff.start  ? selectedStaff.start  : null;
+    const staffEnd    = selectedStaff && selectedStaff.end    ? selectedStaff.end    : null;
+    const staffStart2 = selectedStaff && selectedStaff.start2 ? selectedStaff.start2 : null;
+    const staffEnd2   = selectedStaff && selectedStaff.end2   ? selectedStaff.end2   : null;
+
+    const svcStart  = staffStart  || (selectedService && selectedService.start  ? selectedService.start  : null);
+    const svcEnd    = staffEnd    || (selectedService && selectedService.end    ? selectedService.end    : null);
+    const svcStart2 = staffStart2 || (selectedService && selectedService.start2 ? selectedService.start2 : null);
+    const svcEnd2   = staffEnd2   || (selectedService && selectedService.end2   ? selectedService.end2   : null);
+
+    const bizStart  = svcStart  || selectedBiz.startTime;
+    const bizEnd    = svcEnd    || selectedBiz.endTime;
+    const bizStart2 = svcStart2 ? svcStart2 : (svcStart ? null : (selectedBiz.startTime2 || null));
+    const bizEnd2   = svcEnd2   ? svcEnd2   : (svcEnd   ? null : (selectedBiz.endTime2   || null));
+
+    // Verificar días de trabajo del staff seleccionado
+    if (selectedStaff && selectedStaff.workDays && selectedStaff.workDays.length) {
+      const [dd, mm, yy] = selectedDate.key.split('/');
+      const dow = new Date(+yy, +mm - 1, +dd).getDay();
+      if (!selectedStaff.workDays.includes(dow)) {
+        document.getElementById('slotsLabel').textContent = 'Horarios disponibles';
+        document.getElementById('slotsGrid').innerHTML = `<p class="no-slots">${selectedStaff.name} no atiende este día. Elegí otro día u otra persona.</p>`;
+        return;
       }
     }
 
-    let allSlots = DB.generateSlots(selectedBiz.startTime, selectedBiz.endTime, effectiveInterval);
-    if (selectedBiz.startTime2 && selectedBiz.endTime2) {
-      allSlots = allSlots.concat(DB.generateSlots(selectedBiz.startTime2, selectedBiz.endTime2, effectiveInterval));
+    let allSlots = DB.generateSlots(bizStart, bizEnd, effectiveInterval);
+    if (bizStart2 && bizEnd2) {
+      allSlots = allSlots.concat(DB.generateSlots(bizStart2, bizEnd2, effectiveInterval));
     }
 
     // Filter out past slots for today
@@ -742,10 +1006,24 @@
       });
     }
 
-    const taken = allSlots.filter(t => DB.isTaken(selectedBiz.id, selectedDate.key, t));
+    const svcName = selectedService ? selectedService.name : null;
+    const capacity = DB.getSlotCapacity(selectedBiz.id, svcName);
+
+    // If a specific staff is chosen, check per-staff availability
+    let takenFn, remainingFn;
+    if (selectedStaff) {
+      takenFn    = t => DB.isStaffTaken(selectedBiz.id, selectedStaff.id, selectedDate.key, t, 1);
+      remainingFn = t => DB.getStaffSlotRemaining(selectedBiz.id, selectedStaff.id, selectedDate.key, t, 1);
+    } else {
+      takenFn    = t => DB.isTaken(selectedBiz.id, selectedDate.key, t, svcName);
+      remainingFn = t => DB.getSlotRemaining(selectedBiz.id, selectedDate.key, t, svcName);
+    }
+
+    const taken = allSlots.filter(t => takenFn(t));
     const avail = allSlots.length - taken.length;
 
-    document.getElementById('slotsLabel').textContent = `Horarios disponibles (${avail} libres de ${allSlots.length})`;
+    const staffLabel = selectedStaff ? ` · con ${selectedStaff.icon||'👤'} ${selectedStaff.name}` : '';
+    document.getElementById('slotsLabel').textContent = `Horarios disponibles (${avail} libres de ${allSlots.length})${staffLabel}`;
     if (!allSlots.length) {
       const now2 = new Date();
       const todayKey2 = now2.toLocaleDateString('es-AR');
@@ -755,11 +1033,10 @@
       document.getElementById('slotsGrid').innerHTML = `<p class="no-slots">${msg}</p>`;
       return;
     }
-    const capacity = selectedBiz.slotCapacity && selectedBiz.slotCapacity > 1 ? selectedBiz.slotCapacity : 1;
     document.getElementById('slotsGrid').innerHTML = allSlots.map(t => {
-      const remaining = DB.getSlotRemaining(selectedBiz.id, selectedDate.key, t);
+      const remaining = remainingFn(t);
       const isTaken = remaining <= 0;
-      const showCount = capacity > 1;
+      const showCount = capacity > 1 && !selectedStaff;
       const countLabel = showCount
         ? `<span style="font-size:9px;display:block;margin-top:2px;color:${isTaken?'rgba(99,102,184,.28)':remaining<=2?'#efca27':'#5DCAA5'};">${isTaken?'Completo':`${remaining} lugar${remaining>1?'es':''}`}</span>`
         : '';
@@ -776,8 +1053,14 @@
     document.querySelectorAll('.slot').forEach(s => s.classList.remove('active'));
     el.classList.add('active');
     document.getElementById('confirmSlot').textContent = time + ' hs  —  ' + selectedBiz.name;
-    const priceStr = selectedBiz.price != null ? `  ·  Precio: $\u00a0${Number(selectedBiz.price).toLocaleString('es-AR')}` : '';
-    document.getElementById('confirmDate').textContent = selectedDate.label + priceStr;
+    // Precio: usar el del servicio seleccionado si existe, sino el global del negocio
+    const effectivePrice = (selectedService && selectedService.price != null)
+      ? selectedService.price
+      : selectedBiz.price != null ? selectedBiz.price : null;
+    const serviceName = selectedService ? `  ·  ${selectedService.name}` : '';
+    const staffName = selectedStaff ? `  ·  ${selectedStaff.icon||'👤'} ${selectedStaff.name}` : '';
+    const priceStr = effectivePrice != null ? `  ·  Precio: $\u00a0${Number(effectivePrice).toLocaleString('es-AR')}` : '';
+    document.getElementById('confirmDate').textContent = selectedDate.label + serviceName + staffName + priceStr;
     document.getElementById('confirmBar').classList.add('visible');
     document.getElementById('successBox').classList.remove('visible');
     // Mostrar info de seña si aplica
@@ -939,10 +1222,22 @@
 
   function confirmBooking() {
     if (!selectedBiz || !selectedDate || !selectedSlot) return;
-    if (DB.isTaken(selectedBiz.id, selectedDate.key, selectedSlot)) {
+    // Check slot taken — if staff chosen, check per-staff; otherwise global
+    const svcName = selectedService ? selectedService.name : null;
+    const slotTaken = selectedStaff
+      ? DB.isStaffTaken(selectedBiz.id, selectedStaff.id, selectedDate.key, selectedSlot, 1)
+      : DB.isTaken(selectedBiz.id, selectedDate.key, selectedSlot, svcName);
+    if (slotTaken) {
       Toast.show('Ese horario ya fue tomado. Elegí otro.', 'error');
       renderSlots(); return;
     }
+
+    // ── Límite: 3 turnos reservados hoy en este negocio ──────────
+    if (_countTodayForBiz(selectedBiz.id) >= 3) {
+      Toast.show('Ya reservaste 3 turnos hoy en este negocio. Volvé mañana o cancelá uno.', 'error', 5000);
+      return;
+    }
+
     // Si es invitado, pedir datos de contacto primero
     if (currentUser.isGuest) {
       document.getElementById('guestModal').style.display = 'flex';
@@ -966,6 +1261,12 @@
   }
 
   function doSaveAppointment(tpActive, thirdPartyName, thirdPartyDni) {
+    // ── Doble chequeo del límite (cubre flujo invitados) ──
+    if (_countTodayForBiz(selectedBiz.id) >= 3) {
+      Toast.show('Ya reservaste 3 turnos hoy en este negocio.', 'error', 5000);
+      return;
+    }
+
     const appt = {
       id: Date.now(),
       userId: currentUser.id,
@@ -988,11 +1289,17 @@
       forThirdParty:   tpActive,
       thirdPartyName:  tpActive ? thirdPartyName : '',
       thirdPartyDni:   tpActive ? thirdPartyDni  : '',
-      price:           selectedBiz.price != null ? selectedBiz.price : null,
+      price:           (selectedService && selectedService.price != null) ? selectedService.price : (selectedBiz.price != null ? selectedBiz.price : null),
+      serviceName:     selectedService ? selectedService.name : null,
+      staffId:         selectedStaff ? selectedStaff.id   : null,
+      staffName:       selectedStaff ? selectedStaff.name : null,
+      staffIcon:       selectedStaff ? (selectedStaff.icon||'👤') : null,
     };
     DB.saveAppointment(appt);
     const who = tpActive ? ` · Para: ${thirdPartyName}` : '';
-    document.getElementById('successDetail').textContent = selectedBiz.name+' · '+selectedSlot+' hs · '+selectedDate.label+who;
+    const svcLabel = selectedService ? ` · ${selectedService.name}` : '';
+    const staffLabel = selectedStaff ? ` · ${selectedStaff.icon||'👤'} ${selectedStaff.name}` : '';
+    document.getElementById('successDetail').textContent = selectedBiz.name+''+svcLabel+staffLabel+' · '+selectedSlot+' hs · '+selectedDate.label+who;
     document.getElementById('confirmBar').classList.remove('visible');
     document.getElementById('successBox').classList.add('visible');
     Toast.show('¡Turno reservado con éxito!', 'success');
@@ -1003,7 +1310,10 @@
 
   function closePanel() {
     document.getElementById('bookingPanel').classList.remove('visible');
-    selectedBiz = null; renderBiz();
+    document.getElementById('servicePickerWrap').style.display = 'none';
+    document.getElementById('staffPickerWrap').style.display = 'none';
+    document.getElementById('slotsWrap').style.display = 'block';
+    selectedBiz = null; selectedService = null; selectedStaff = null; staffChosen = false; renderBiz();
   }
 
   /* ── INVITADO ── */
@@ -1052,9 +1362,18 @@
     const cancelled = appts.filter(a => a.status.startsWith('cancel'));
     const cancelByBiz = cancelled.filter(a => a.cancelledBy === 'business');
 
+    const todayStr = new Date().toLocaleDateString('es-AR');
+    const reservadosHoy = appts.filter(a =>
+      a.status === 'confirmed' &&
+      new Date(a.createdAt).toLocaleDateString('es-AR') === todayStr
+    ).length;
+
     document.getElementById('statsRow').innerHTML = `
       <div class="stat-card"><span class="stat-num">${active.length}</span><span class="stat-lbl">Turnos activos</span></div>
-      <div class="stat-card"><span class="stat-num">${cancelled.length}</span><span class="stat-lbl">Cancelados</span></div>
+      <div class="stat-card">
+        <span class="stat-num" style="color:${reservadosHoy > 0 ? 'var(--blue-400)' : 'var(--blue-200)'};">${reservadosHoy}</span>
+        <span class="stat-lbl">Reservados hoy</span>
+      </div>
       <div class="stat-card"><span class="stat-num">${appts.length}</span><span class="stat-lbl">Total histórico</span></div>
     `;
 
@@ -1092,7 +1411,7 @@
         <div class="appt-icon">${a.bizIcon||'🏪'}</div>
         <div class="appt-info">
           <div class="appt-biz">${a.bizName}</div>
-          <div class="appt-time">${a.dateLabel||a.date}  ·  ${a.time} hs${a.price != null ? `  ·  <strong style="color:var(--green);">$\u00a0${Number(a.price).toLocaleString('es-AR')}</strong>` : ''}</div>
+          <div class="appt-time">${a.dateLabel||a.date}  ·  ${a.time} hs${a.serviceName ? `  ·  <span style="color:var(--blue-200);">${a.serviceName}</span>` : ''}${a.staffName ? `  ·  <span style="color:var(--blue-400);">${a.staffIcon||'👤'} ${a.staffName}</span>` : ''}${a.price != null ? `  ·  <strong style="color:var(--green);">$\u00a0${Number(a.price).toLocaleString('es-AR')}</strong>` : ''}</div>
           ${a.forThirdParty ? `<div style="margin-top:4px;font-size:12px;color:var(--blue-200);">👤 Para: <strong style="color:var(--blue-100);">${a.thirdPartyName}</strong> &nbsp;·&nbsp; DNI ${a.thirdPartyDni}</div>` : ''}
           ${isCancelledByBiz
             ? `<div class="appt-reason">
